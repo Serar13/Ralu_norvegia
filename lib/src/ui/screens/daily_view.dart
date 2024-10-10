@@ -41,7 +41,7 @@ class _dailyViewState extends State<dailyView> {
     getDocId();
   }
 
-  /// Verificăm și resetăm task-urile dacă este o zi nouă
+  // Verificăm și resetăm task-urile dacă este o zi nouă
   Future<void> _checkAndResetForNewDay() async {
     final prefs = await SharedPreferences.getInstance();
 
