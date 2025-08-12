@@ -51,7 +51,7 @@ class _WelcomeViewState extends State<WelcomeView> {
                           ),
                         ),
                         Text(
-                          "Clean",
+                          "vaskmedmeg",
                           style: TextStyle(
                             color: AppColors.secondary, // Soft Navy Blue
                             fontSize: 50,
@@ -111,6 +111,7 @@ class _WelcomeViewState extends State<WelcomeView> {
                               Colors.white,
                                   () {
                                 GoRouter.of(context).push(singinPath);
+                                //GoRouter.of(context).push(ChooseOptionPath);
                               },
                             ),
                           ],

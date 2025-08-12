@@ -50,13 +50,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
           return Container(
             color: AppColors.primary,
-            child: const Center(
-              child: Text(
-                "welcome",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+            child: Center(
+              child: Image.asset(
+                'assets/aboutUs-removebg-preview.png',
+                fit: BoxFit.contain, // Sau BoxFit.cover dacă vrei să umple
+                // width: 200,       // poți pune lățime sau înălțime dacă vrei să limitezi
               ),
             ),
           );

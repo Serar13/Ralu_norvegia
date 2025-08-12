@@ -41,23 +41,50 @@ class _dailyViewState extends State<dailyView> {
     getDocId();
   }
 
-  // Verificăm și resetăm task-urile dacă este o zi nouă
+// Checks and resets tasks if it's a new day
   Future<void> _checkAndResetForNewDay() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Obținem ultima dată când task-urile au fost verificate/resetate
+    // Get the last reset date stored
     String? lastResetDate = prefs.getString('lastResetDate');
 
     DateTime today = DateTime.now();
+
+    // Check if today is a new day
     if (lastResetDate == null || DateTime.parse(lastResetDate).day != today.day) {
-      // Resetăm task-urile dacă este o zi nouă
+      // Reset tasks for a new day
       await _resetUserTasks();
-      // Salvăm noua dată de resetare
+
+      // Save today's date as the last reset date
       prefs.setString('lastResetDate', today.toIso8601String());
+
+      print("Tasks reset for a new day!");
     }
 
-    // Verificăm dacă toate task-urile au fost finalizate ieri și setăm starea
-    _checkIfAllTasksCompleted();
+    // Schedule the next reset for midnight
+    _scheduleResetForMidnight();
+  }
+
+  void _scheduleResetForMidnight() {
+    final now = DateTime.now();
+
+    // Get the next midnight (local time)
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+
+    // Calculate the duration until midnight
+    final timeUntilMidnight = tomorrow.difference(now);
+    // final timeUntilMidnight = Duration(seconds: 5); // Simulate midnight in 5 seconds
+
+    // Log the scheduled reset time
+    print("Current time: $now");
+    print("Next midnight: $tomorrow");
+    print("Scheduled reset at midnight in ${timeUntilMidnight.inHours} hours and ${timeUntilMidnight.inMinutes.remainder(60)} minutes.");
+
+    // Set a timer to call _resetUserTasks at midnight
+    Future.delayed(timeUntilMidnight, () async {
+      print("Midnight reached! Resetting tasks...");
+      await _resetUserTasks();
+    });
   }
 
   // Verifică dacă toate task-urile sunt completate
@@ -73,10 +100,30 @@ class _dailyViewState extends State<dailyView> {
         break;
       }
     }
-
+    if (allCompleted) {
+      await _addPoints(10);
+    }
     setState(() {
       _allTasksCompleted = allCompleted;
     });
+  }
+
+  // Method to add points to the user
+  Future<void> _addPoints(int pointsToAdd) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      // Atomically increment the points
+      await userRef.update({
+        'points': FieldValue.increment(pointsToAdd),
+      });
+
+      // Notify the parent widget (homeView) about the updated points
+      widget.pointsNotifier.value += pointsToAdd;
+    } catch (e) {
+      print("Error adding points: $e");
+    }
   }
 
   @override
@@ -88,20 +135,23 @@ class _dailyViewState extends State<dailyView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              "Congrats! You've completed all the tasks for today!",
-              style: TextStyle(fontSize: 24, color: AppColors.accent3),
-              textAlign: TextAlign.center,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                "Congrats! You've completed all the tasks for today!",
+                style: TextStyle(fontSize: 24, color: AppColors.accent3),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
+           /* ElevatedButton(
               onPressed: _resetUserTasksButton, // Reset tasks button (pentru testare)
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent3,
                 minimumSize: Size(200, 50),
               ),
               child: const Text("Reset Tasks"),
-            ),
+            ),*/
           ],
         ),
       )

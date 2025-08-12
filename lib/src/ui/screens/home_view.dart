@@ -23,7 +23,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists) {
-        int points = int.parse(doc.data()?['points'] ?? '0');
+        int points = doc.data()?['points'] ?? 0;
         pointsNotifier.value = points; // Update the ValueNotifier
       } else {
         pointsNotifier.value = 0;
@@ -104,7 +104,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
       body: TabBarView(
         controller: _tabController,
         children: [
-          todayView(),
+          TodayView(),
           dailyView(pointsNotifier: pointsNotifier), // Pass the pointsNotifier to dailyView
         ],
       ),

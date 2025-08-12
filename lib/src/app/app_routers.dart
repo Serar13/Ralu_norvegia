@@ -12,4 +12,8 @@ class AppRoutes {
   static const String editProfileRoute = "editProfile";
   static const String adminRoute = "admin";
   static const String adminConsoleRoute = "adminConsole";
+  static const String RoomsHouseRoute = "RoomsHouse";
+  static const String ChooseOptionRoute = "ChooseOption";
+  static const String ReviewChoseRoute = "ReviewChose";
+  static const String RoomsSetupRoute = "RoomsSetup";
 }

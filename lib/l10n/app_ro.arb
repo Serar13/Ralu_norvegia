@@ -14,9 +14,9 @@
       }
     }
   },
-  "welcome": "Bine ai venit",
+  "welcome": "Velkomst til",
   "@welcome":{
-    "bineAiVenit":"Bine ai venit"
+    "bineAiVenit":"Velkomst til"
   },
   "userName": "Username",
   "@userName":{

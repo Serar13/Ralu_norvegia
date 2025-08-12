@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +20,8 @@ class _logInViewState extends State<logInView> {
   bool passToggle = true;
   bool _isLoading = false;
   final formFieldKey = GlobalKey<FormState>();
+
+  get userId => "0";
 
   void togglePasswordVisibility() {
     setState(() {
@@ -43,7 +46,7 @@ class _logInViewState extends State<logInView> {
             password: _passwordController.text,
           );
 
-          User? user = userCredential.user;
+          String user = userCredential.user!.uid;
           //  TODO Comentat pentru testare
          /* if (user != null && !user.emailVerified) {
             // Log out if email is not verified
@@ -55,7 +58,8 @@ class _logInViewState extends State<logInView> {
             );
           } else {*/
             // If email is verified, navigate to the home page
-            GoRouter.of(context).go(homePath);
+          await checkUserTasks(user, context);
+
          // }
         }
       } on FirebaseAuthException catch (e) {
@@ -68,6 +72,38 @@ class _logInViewState extends State<logInView> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> checkUserTasks(String userId, BuildContext context) async {
+    try {
+      print("Verific userId: $userId"); // Debugging
+      final weeklyTasksRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('weeklyTasks');
+
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('weeklyTasks')
+          .doc('Uke 1')
+          .collection('days')
+          .doc('Luni');
+
+      final docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        print('Document exists: ${docSnapshot.data()}');
+        GoRouter.of(context).go(homePath);
+      } else {
+        print('Document does not exist');
+        GoRouter.of(context).go(ChooseOptionPath, extra: {'userId': userId});
+      }
+    } catch (e) {
+      print("Eroare în checkUserTasks: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     }
   }
 
@@ -192,6 +228,8 @@ class _logInViewState extends State<logInView> {
                               ),
                               onTap: () {
                                 GoRouter.of(context).push(singinPath);
+                                // GoRouter.of(context).go(ChooseOptionPath, extra: {'userId': userId});
+                                // GoRouter.of(context).push(RoomsSetupPath);
                               },
                             )
                           ],

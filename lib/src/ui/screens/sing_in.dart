@@ -6,6 +6,7 @@ import 'package:ralu_norvegia/src/app/app_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/widgets/validators.dart';
 import 'package:ralu_norvegia/src/ui/widgets/widget_factory.dart';
+import '../../service/firestore_bootstrap.dart';
 
 class singInView extends StatefulWidget {
   const singInView({super.key});
@@ -43,6 +44,8 @@ class _singInViewState extends State<singInView> {
           password: _passwordController.text,
         );
 
+        final String userId = userCredential.user!.uid;
+        print(userId);
         addUserDetails(
           _firstNameController.text,
           _lastNameController.text,
@@ -50,23 +53,22 @@ class _singInViewState extends State<singInView> {
           int.parse(_phoneNumberController.text),
         );
 
-        // Send verification email
+        // (Optional) send verification email, dar nu mai facem signOut ca să continuăm flow-ul
         await userCredential.user?.sendEmailVerification();
 
-        // Show a message to check their email
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please verify your email. Check your inbox.')),
+        // Creează scheletul de Firestore (profil + colecții de bază)
+        await FirestoreBootstrap.ensureUserSkeleton(
+          uid: userId,
+          email: _emailController.text,
         );
 
-        // Log out user after sending email to prevent access
-        await FirebaseAuth.instance.signOut();
-
-        // Navigate to the login screen
-        GoRouter.of(context).go(loginPath);
+        // Mergem direct la RoomsSetup
+        GoRouter.of(context).go(RoomsSetupPath);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
         );
+        print(e.toString());
       } finally {
         setState(() {
           _isLoading = false;

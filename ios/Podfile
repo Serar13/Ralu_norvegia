@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '12.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -39,7 +39,15 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    # Keep Flutter additional settings
     flutter_additional_ios_build_settings(target)
+
+    # Force iOS 15.0 deployment target for all Pods/targets
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+
+    # Keep your BoringSSL-GRPC flag cleanup
     if target.name == 'BoringSSL-GRPC'
       target.source_build_phase.files.each do |file|
         if file.settings && file.settings['COMPILER_FLAGS']
