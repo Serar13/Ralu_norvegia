@@ -153,9 +153,15 @@ class ReviewChose extends StatelessWidget {
                 );
 
                 // pregătim completedTasks (schelet/reset)
+
                 await FirestoreBootstrap.resetCompletedTasks(
                   uid: uid,
                   planWeeks: planWeeks,
+                );
+                await FirestoreBootstrap.initializeUserProgress(
+                  uid: uid,
+                  planWeeks: planWeeks,
+                  weekHeaders: weekHeaders,
                 );
 
                 context.go(homePath);

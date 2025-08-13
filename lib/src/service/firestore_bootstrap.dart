@@ -309,4 +309,72 @@ class FirestoreBootstrap {
       }, SetOptions(merge: true));
     }
   }
+  /// Initialize per-user progress tree: users/{uid}/userProgress/{Uke}/days/{Zi}/locations/loc_{i}
+  /// Each location holds identical task list (merged by room type & week header/category)
+  /// and a map of boolean flags `done` for each task index, plus an aggregate `completed`.
+  static Future<void> initializeUserProgress({
+    required String uid,
+    required Map<String, Map<String, List<String>>> planWeeks,
+    required Map<String, String> weekHeaders,
+  }) async {
+    final userRef = _db.collection('users').doc(uid);
+    final progressRef = userRef.collection('userProgress');
+
+    for (final week in planWeeks.keys) {
+      final header = weekHeaders[week] ?? '';
+
+      // Ensure week doc exists
+      await progressRef.doc(week).set({
+        'header': header,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      final daysForWeek = planWeeks[week]!; // { 'Luni': [locs], ... }
+      for (final day in dayOrder) {
+        if (!daysForWeek.containsKey(day)) continue;
+        final locs = daysForWeek[day] ?? const <String>[];
+
+        // Compute merged tasks for this day based on involved room types and category (header)
+        final String category = header; // "Tak og vegger" / "Inventar" / "Gulv"
+        final Set<String> roomTypes = locs
+            .map((s) => (s.trim().isEmpty ? s : s.trim()).split(' ').first)
+            .toSet();
+
+        final List<String> mergedTasks = <String>[];
+        for (final rt in roomTypes) {
+          final list = _TASKS_BY_ROOM_AND_CATEGORY[rt]?[category] ?? const <String>[];
+          for (final t in list) {
+            if (!mergedTasks.contains(t)) mergedTasks.add(t);
+          }
+        }
+
+        // Create the day node
+        final dayRef = progressRef.doc(week).collection('days').doc(day);
+        await dayRef.set({
+          'nrLoc': locs.length,
+          'suprafata': header,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        // For each location, create a location doc with the tasks & a boolean map
+        final locationsRef = dayRef.collection('locations');
+        for (int i = 0; i < locs.length; i++) {
+          final name = locs[i];
+          // Build done map: { '0': false, '1': false, ... }
+          final Map<String, bool> done = {
+            for (int ti = 0; ti < mergedTasks.length; ti++) '$ti': false,
+          };
+
+          await locationsRef.doc('loc_$i').set({
+            'index': i,
+            'name': name,
+            'tasks': mergedTasks,
+            'done': done,
+            'completed': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+      }
+    }
+  }
 }

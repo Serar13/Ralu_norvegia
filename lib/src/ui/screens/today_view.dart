@@ -21,13 +21,6 @@ class _TodayViewState extends State<TodayView> {
   final List<String> tasksForToday = [];
   List<List<bool>> _isCheckedPerLocation = [];
 
-  // doc pentru persistarea bifelor (per user, per zi)
-  DocumentReference<Map<String, dynamic>> get _completedDocRef =>
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('completedTasks')
-          .doc('${currentWeek}-${currentDay}');
 
   @override
   void initState() {
@@ -51,14 +44,15 @@ class _TodayViewState extends State<TodayView> {
 
   Future<void> _loadTasksForToday() async {
     try {
-      final daySnap = await FirebaseFirestore.instance
+      final dayRef = FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('weeklyTasks')
+          .collection('userProgress')
           .doc(currentWeek)
           .collection('days')
-          .doc(currentDay)
-          .get();
+          .doc(currentDay);
+
+      final daySnap = await dayRef.get();
 
       if (!daySnap.exists) {
         setState(() {
@@ -70,55 +64,36 @@ class _TodayViewState extends State<TodayView> {
         return;
       }
 
-      final data = daySnap.data() as Map<String, dynamic>? ?? {};
-      surfaceForToday = data['suprafata']?.toString();
+      final dayData = daySnap.data() as Map<String, dynamic>? ?? {};
+      surfaceForToday = dayData['suprafata']?.toString();
 
-      // nrLoc e string în date; îl tolerăm oricum ar veni
-      final int locCount = () {
-        final raw = data['nrLoc'];
-        final n = int.tryParse(raw?.toString() ?? '');
-        return (n == null || n <= 0) ? 1 : n;
-      }();
+      final locsSnap = await dayRef
+          .collection('locations')
+          .orderBy('index')
+          .get();
 
-      // colectăm locațiile: locatie, locatie1, locatie2, …
-      allLocations
-        ..clear();
-      for (int i = 0; i < locCount; i++) {
-        final key = (i == 0) ? 'locatie' : 'locatie$i';
-        final val = data[key]?.toString().trim();
-        allLocations.add((val != null && val.isNotEmpty) ? val : 'Locație ${i + 1}');
-      }
+      allLocations.clear();
+      tasksForToday.clear();
+      _isCheckedPerLocation = [];
 
-      // tasks: listă de string
-      tasksForToday
-        ..clear()
-        ..addAll(List<String>.from(data['tasks'] ?? const <String>[]));
-
-      // fallback dacă nu sunt taskuri
-      if (tasksForToday.isEmpty) {
-        _isCheckedPerLocation = List.generate(locCount, (_) => <bool>[]);
+      if (locsSnap.docs.isEmpty) {
         setState(() {});
         return;
       }
 
-      // inițializare locală cu false (UI-ready)
-      _isCheckedPerLocation = List.generate(
-        locCount,
-            (_) => List<bool>.filled(tasksForToday.length, false),
-      );
+      final first = locsSnap.docs.first.data();
+      final List<String> dayTasks = List<String>.from(first['tasks'] ?? const <String>[]);
+      tasksForToday.addAll(dayTasks);
 
-      // hidratează din completedTasks/{week-day}
-      final compSnap = await _completedDocRef.get();
-      final Map<String, dynamic> saved = compSnap.data() ?? const {};
-
-      for (int li = 0; li < locCount; li++) {
-        for (int ti = 0; ti < tasksForToday.length; ti++) {
-          final key = 'loc${li}_task${ti}';
-          final v = saved[key];
-          if (v is bool) {
-            _isCheckedPerLocation[li][ti] = v;
-          }
-        }
+      for (int li = 0; li < locsSnap.docs.length; li++) {
+        final data = locsSnap.docs[li].data();
+        allLocations.add(data['name']?.toString() ?? 'Locație ${li + 1}');
+        final Map<String, dynamic> doneMap = Map<String, dynamic>.from(data['done'] ?? {});
+        final List<bool> row = List<bool>.generate(
+          dayTasks.length,
+          (ti) => (doneMap['$ti'] is bool) ? doneMap['$ti'] as bool : false,
+        );
+        _isCheckedPerLocation.add(row);
       }
 
       if (mounted) setState(() {});
@@ -127,15 +102,33 @@ class _TodayViewState extends State<TodayView> {
     }
   }
 
+  DocumentReference<Map<String, dynamic>> _locationDocRef(int locIdx) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('userProgress')
+        .doc(currentWeek)
+        .collection('days')
+        .doc(currentDay)
+        .collection('locations')
+        .doc('loc_$locIdx');
+  }
+
   Future<void> _saveCheckboxState(int locIdx, int taskIdx, bool value) async {
     try {
-      // salvăm incremental pe cheie specifică
-      final key = 'loc${locIdx}_task${taskIdx}';
-      await _completedDocRef.set({key: value}, SetOptions(merge: true));
+      await _locationDocRef(locIdx).update({
+        'done.$taskIdx': value,
+      });
 
-      // dacă toate task-urile tuturor locațiilor sunt bifate → dialog confirmare
+      final allTasksDoneForLocation = _isCheckedPerLocation[locIdx].every((b) => b);
+      await _locationDocRef(locIdx).set(
+        {'completed': allTasksDoneForLocation},
+        SetOptions(merge: true),
+      );
+
       final allDone = _isCheckedPerLocation.isNotEmpty &&
           _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
+
       if (allDone) {
         _showCompletionDialog(context);
       }
