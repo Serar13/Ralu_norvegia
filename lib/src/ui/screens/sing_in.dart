@@ -53,8 +53,8 @@ class _singInViewState extends State<singInView> {
           int.parse(_phoneNumberController.text),
         );
 
-        // (Optional) send verification email, dar nu mai facem signOut ca să continuăm flow-ul
-        await userCredential.user?.sendEmailVerification();
+        // EMAIL VERIFICATION TEMPORARILY DISABLED
+        // await userCredential.user?.sendEmailVerification();
 
         // Creează scheletul de Firestore (profil + colecții de bază)
         await FirestoreBootstrap.ensureUserSkeleton(

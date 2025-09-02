@@ -47,19 +47,9 @@ class _logInViewState extends State<logInView> {
           );
 
           final User? user = userCredential.user;
-          //  TODO Comentat pentru testare
-          if (user != null && !user.emailVerified) {
-            await _sendVerificationEmail(user);
-            await FirebaseAuth.instance.signOut();
-
-            // Show message to verify email
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please verify your email to log in.')),
-            );
-          } else {
-            // If email is verified, navigate to the home page
-          await checkUserTasks(user!.uid, context);
-
+coment           // EMAIL VERIFICATION CHECK TEMPORARILY DISABLED – allow login regardless of verification state
+          if (user != null) {
+            await checkUserTasks(user.uid, context);
           }
         }
       } on FirebaseAuthException catch (e) {
@@ -75,6 +65,7 @@ class _logInViewState extends State<logInView> {
     }
   }
 
+  /*
   Future<void> _sendVerificationEmail(User user) async {
     try {
       await user.sendEmailVerification();
@@ -122,6 +113,7 @@ class _logInViewState extends State<logInView> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+  */
 
 
   Future<void> checkUserTasks(String userId, BuildContext context) async {
