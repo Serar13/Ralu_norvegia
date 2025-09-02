@@ -46,21 +46,21 @@ class _logInViewState extends State<logInView> {
             password: _passwordController.text,
           );
 
-          String user = userCredential.user!.uid;
+          final User? user = userCredential.user;
           //  TODO Comentat pentru testare
-         /* if (user != null && !user.emailVerified) {
-            // Log out if email is not verified
+          if (user != null && !user.emailVerified) {
+            await _sendVerificationEmail(user);
             await FirebaseAuth.instance.signOut();
 
             // Show message to verify email
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Please verify your email to log in.')),
             );
-          } else {*/
+          } else {
             // If email is verified, navigate to the home page
-          await checkUserTasks(user, context);
+          await checkUserTasks(user!.uid, context);
 
-         // }
+          }
         }
       } on FirebaseAuthException catch (e) {
         // Display error message if login fails
@@ -74,6 +74,55 @@ class _logInViewState extends State<logInView> {
       }
     }
   }
+
+  Future<void> _sendVerificationEmail(User user) async {
+    try {
+      await user.sendEmailVerification();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification email sent. Please check your inbox (and spam).')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not send verification email: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _resendVerificationWithCredentials() async {
+    if ((_emailController.text).isEmpty || (_passwordController.text).isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email and password first.')),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      final u = cred.user;
+      if (u != null && !u.emailVerified) {
+        await _sendVerificationEmail(u);
+      } else if (u != null && u.emailVerified) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This email is already verified.')),
+        );
+      }
+      await FirebaseAuth.instance.signOut();
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Failed to resend verification email.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
 
   Future<void> checkUserTasks(String userId, BuildContext context) async {
     try {

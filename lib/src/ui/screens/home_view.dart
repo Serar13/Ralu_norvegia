@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ralu_norvegia/src/app/app_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
+import 'package:ralu_norvegia/src/ui/screens/calendar_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/daily_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/today_view.dart';
 
@@ -18,6 +19,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   final user = FirebaseAuth.instance.currentUser!;
   late TabController _tabController;
   ValueNotifier<int> pointsNotifier = ValueNotifier<int>(0); // ValueNotifier to track points
+  final ValueNotifier<DateTime?> _selectedDateNotifier = ValueNotifier<DateTime?>(null);
 
   Future<void> _loadUserData() async {
     try {
@@ -44,6 +46,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   void dispose() {
     _tabController.dispose();
     pointsNotifier.dispose(); // Dispose of the ValueNotifier when not needed
+    _selectedDateNotifier.dispose();
     super.dispose();
   }
 
@@ -84,6 +87,19 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.calendar_today, color: AppColors.accent3),
+            onPressed: () async {
+              final picked = await Navigator.of(context).push<DateTime>(
+                MaterialPageRoute(builder: (_) => const CalendarWeekView()),
+              );
+              if (picked != null) {
+                _selectedDateNotifier.value = picked;
+                // comută pe tab-ul Today
+                _tabController.index = 0;
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.person, color: AppColors.accent3),
             onPressed: () {
               GoRouter.of(context).push(userProfilePath);
@@ -104,7 +120,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
       body: TabBarView(
         controller: _tabController,
         children: [
-          TodayView(),
+          TodayView(selectedDateNotifier: _selectedDateNotifier),
           dailyView(pointsNotifier: pointsNotifier), // Pass the pointsNotifier to dailyView
         ],
       ),

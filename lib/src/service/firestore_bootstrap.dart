@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// lib/src/service/firestore_bootstrap.dart
+
 const Map<String, Map<String, List<String>>> _TASKS_BY_ROOM_AND_CATEGORY = {
   'Kjøkken': {
     'Tak og vegger': [
@@ -32,6 +34,7 @@ const Map<String, Map<String, List<String>>> _TASKS_BY_ROOM_AND_CATEGORY = {
       'Gulvmatter/tepper',
     ],
   },
+
   'Baderom': {
     'Tak og vegger': [
       'Ventilasjon',
@@ -57,13 +60,19 @@ const Map<String, Map<String, List<String>>> _TASKS_BY_ROOM_AND_CATEGORY = {
       'Baderomsmatter',
     ],
   },
+
+  // 🔧 STUE — completat după tabel
   'Stue': {
     'Tak og vegger': [
-      'Vinduer/ventilasjon',
+      'Flekkfjerning på taket',
+      'Taklister',
+      'Hengt belysning',
       'Flekkfjerning på vegger',
+      'Vinduer/ventilasjon',
       'Persienner/gardiner',
-      'Bilder/rammer/vegglamper',
-      'Stikkontakter og brytere',
+      'Bilder, rammer, hengt pynt, vegglamper',
+      'Stikkontakter',
+      'Brytere',
       'Dør med karm',
     ],
     'Inventar': [
@@ -71,42 +80,96 @@ const Map<String, Map<String, List<String>>> _TASKS_BY_ROOM_AND_CATEGORY = {
       'Skap/skuffer',
       'Kommoder',
       'Gulvlamper',
-      'TV og benk',
-      'Spisebord/stoler',
-      'Sofa/lenestoler',
-      'Puter/tepper',
+      'TV (med benk)',
+      'Spisebord med stoler',
+      'Sofa/lenestoler (støvsuging, flekkfjerning)',
+      'Puter, tepper (vask putetrekk, vask/luft tepper)',
       'Peis',
     ],
-    'Gulv': ['Gulvlister', 'Støvsuging/vask under og bak møbler', 'Gulvmatter/tepper'],
+    'Gulv': [
+      'Gulvlister',
+      'Overflate (støvsuging, vask – under og bak møbler)',
+      'Gulvmatter/tepper',
+    ],
   },
+
+  // 🔧 INNGANGSPARTI — completat după tabel
   'Inngangsparti': {
     'Tak og vegger': [
+      'Flekkfjerning på taket',
+      'Taklister',
+      'Hengt belysning',
       'Flekkfjerning på vegger',
       'Ventilasjon',
-      'Bilder/rammer',
-      'Stikkontakter og brytere',
+      'Bilder, rammer, hengt pynt, vegglamper',
+      'Stikkontakter',
+      'Brytere',
       'Dør med karm',
     ],
     'Inventar': [
-      'Skoskap (inn/ut)', 'Klesskap (organisering)', 'Kommoder', 'Hyller med pynt'
+      'Skoskap (innvendig, utvendig), skobrett',
+      'Klesskap (organisering, støvsuging, vask inn- og utvendig)',
+      'Kommoder (organisering, vask inn- og utvendig, bak)',
+      'Hyller med pynt gjenstander',
     ],
-    'Gulv': ['Gulvlister', 'Overflater (støvsuging, vask)', 'Gulvmatter/tepper'],
+    'Gulv': [
+      'Gulvlister',
+      'Overflater (støvsuging, vask)',
+      'Gulvmatter/tepper',
+    ],
   },
+
+  // 🔧 GANG — completat după tabel
   'Gang': {
     'Tak og vegger': [
-      'Vinduer/ventilasjon', 'Flekkfjerning på vegger', 'Persienner/gardiner',
-      'Stikkontakter og brytere', 'Taklister', 'Hengt belysning'
+      'Vinduer/ventilasjon',
+      'Flekkfjerning på vegger',
+      'Persienner/gardiner',
+      'Bilder, rammer, hengt pynt, vegglamper',
+      'Stikkontakter',
+      'Brytere',
+      'Dør med karm',
+      'Flekkfjerning på taket',
+      'Taklister',
+      'Hengt belysning',
     ],
-    'Inventar': ['Skap/skuffer', 'Kommoder', 'Hyller med pynt', 'Gulvlamper'],
-    'Gulv': ['Gulvlister', 'Overflater (støvsuging, vask)', 'Gulvmatter/tepper'],
+    'Inventar': [
+      'Skap/skuffer (oppå, inni, fronter, under, bak)',
+      'Kommoder (organisering, vask inn- og utvendig, bak)',
+      'Hyller med pynt gjenstander',
+      'Gulvlamper',
+    ],
+    'Gulv': [
+      'Gulvlister',
+      'Overflate (støvsuging, vask)',
+      'Gulvmatter/tepper',
+    ],
   },
+
+  // 🔧 TRAPP — completat după tabel
   'Trapp': {
     'Tak og vegger': [
-      'Flekkfjerning på vegger', 'Vinduer/ventilasjon', 'Stikkontakter', 'Brytere'
+      'Flekkfjerning på taket',
+      'Taklister',
+      'Hengt belysning',
+      'Flekkfjerning på vegger',
+      'Vinduer/ventilasjon',
+      'Bilder, rammer, hengt pynt, vegglamper',
+      'Stikkontakter',
+      'Brytere',
     ],
-    'Inventar': ['Hyller med pynt', 'Rekkverk'],
-    'Gulv': ['Gulvlister', 'Trappetrinn (støvsuging/vask)', 'Under trapp'],
+    'Inventar': [
+      'Hyller med pynt gjenstander',
+      'Rekkverk',
+    ],
+    'Gulv': [
+      'Gulvlister',
+      'Trappetrinn (støvsuging, vask)',
+      'Trappetepper (støvsuging, flekkfjerning)',
+      'Under trapp (støvsuging/vask)',
+    ],
   },
+
   'Gjestebad': {
     'Tak og vegger': [
       'Ventilasjon', 'Vinduer', 'Flekkfjerning på vegger', 'Lysarmatur',
@@ -117,33 +180,42 @@ const Map<String, Map<String, List<String>>> _TASKS_BY_ROOM_AND_CATEGORY = {
     ],
     'Gulv': ['Gulvlister', 'Overflater (støvsuging, vask)', 'Sluk', 'Baderomsmatter'],
   },
+
   'Vaskerom': {
     'Tak og vegger': [
       'Flekkfjerning på vegger', 'Persienner/gardiner', 'Bilder/rammer',
       'Stikkontakter og brytere', 'Dør med karm', 'Ventilasjon'
     ],
     'Inventar': [
-      'Skap/skuffer', 'Hyller', 'Vaskemaskin (rens/filter)', 'Tørketrommel (rens)',
-      'Vaskemidler/utstyr', 'Varmtvannstank', 'Avfallskurv', 'Blandebatteri/vask'
+      'Skap/skuffer', 'Hyller',
+      'Vaskemaskin (rens/filter)', 'Tørketrommel (rens)',
+      'Vaskemidler/utstyr til oppbevaring (tørk, vask, påfyll)',
+      'Varmtvannstank (tørk/vask)',
+      'Avfallskurv (tørk/vask)',
+      'Blandebatteri/vask (innvendig, plugg hull, under)',
     ],
     'Gulv': ['Gulvlister', 'Overflater (støvsuging, vask)', 'Gulvmatter/tepper'],
   },
+
   'Soverom': {
     'Tak og vegger': [
       'Flekkfjerning på vegger', 'Persienner/gardiner', 'Vinduer/ventilasjon',
       'Bilder/rammer', 'Vegglamper', 'Stikkontakter og brytere', 'Dør med karm'
     ],
     'Inventar': [
-      'Madrass', 'Sengeramme', 'Puterdyner', 'Nattbord', 'Klesskap', 'Kommoder', 'Hyller'
+      'Madrass', 'Sengeramme', 'Puterdyner (vask ved behov)',
+      'Nattbord', 'Klesskap (organisering, støvsuging, fronter)',
+      'Kommoder (organisering, fronter)', 'Hyller med pynt gjenstander'
     ],
     'Gulv': ['Gulvlister', 'Overflater (støvsuging, vask, under/bak møbler)', 'Gulvmatter'],
   },
+
   'Garderoberom': {
     'Tak og vegger': [
       'Flekkfjerning på vegger', 'Persienner/gardiner', 'Speil', 'Stikkontakter',
       'Brytere', 'Dør med karm', 'Ventilasjon', 'Vegglamper'
     ],
-    'Inventar': ['Klesskap', 'Kommoder', 'Pynt'],
+    'Inventar': ['Klesskap (organisering, støvsuging/støvtørking, fronter)', 'Kommoder (organisering, fronter)', 'Pynt'],
     'Gulv': ['Gulvlister', 'Overflater (støvsuging, vask)', 'Gulvmatter/tepper'],
   },
 };
@@ -310,8 +382,7 @@ class FirestoreBootstrap {
     }
   }
   /// Initialize per-user progress tree: users/{uid}/userProgress/{Uke}/days/{Zi}/locations/loc_{i}
-  /// Each location holds identical task list (merged by room type & week header/category)
-  /// and a map of boolean flags `done` for each task index, plus an aggregate `completed`.
+  /// Each location holds its own task list based on its room type and the week's category.
   static Future<void> initializeUserProgress({
     required String uid,
     required Map<String, Map<String, List<String>>> planWeeks,
@@ -334,19 +405,8 @@ class FirestoreBootstrap {
         if (!daysForWeek.containsKey(day)) continue;
         final locs = daysForWeek[day] ?? const <String>[];
 
-        // Compute merged tasks for this day based on involved room types and category (header)
-        final String category = header; // "Tak og vegger" / "Inventar" / "Gulv"
-        final Set<String> roomTypes = locs
-            .map((s) => (s.trim().isEmpty ? s : s.trim()).split(' ').first)
-            .toSet();
-
-        final List<String> mergedTasks = <String>[];
-        for (final rt in roomTypes) {
-          final list = _TASKS_BY_ROOM_AND_CATEGORY[rt]?[category] ?? const <String>[];
-          for (final t in list) {
-            if (!mergedTasks.contains(t)) mergedTasks.add(t);
-          }
-        }
+        // Category for this week (Tak og vegger / Inventar / Gulv)
+        final String category = header;
 
         // Create the day node
         final dayRef = progressRef.doc(week).collection('days').doc(day);
@@ -360,15 +420,25 @@ class FirestoreBootstrap {
         final locationsRef = dayRef.collection('locations');
         for (int i = 0; i < locs.length; i++) {
           final name = locs[i];
-          // Build done map: { '0': false, '1': false, ... }
+          final String roomType = (name.trim().isEmpty ? name : name.trim()).split(' ').first;
+          final List<String> tasks = List<String>.from(
+            _TASKS_BY_ROOM_AND_CATEGORY[roomType]?[category] ?? const <String>[],
+          );
+
+          // Build `done` map per task index and stable task ids
           final Map<String, bool> done = {
-            for (int ti = 0; ti < mergedTasks.length; ti++) '$ti': false,
+            for (int ti = 0; ti < tasks.length; ti++) '$ti': false,
           };
+          final List<String> taskIds = [
+            for (final t in tasks) '$roomType::$category::$t',
+          ];
 
           await locationsRef.doc('loc_$i').set({
             'index': i,
             'name': name,
-            'tasks': mergedTasks,
+            'type': roomType,
+            'tasks': tasks,
+            'taskIds': taskIds,
             'done': done,
             'completed': false,
             'createdAt': FieldValue.serverTimestamp(),

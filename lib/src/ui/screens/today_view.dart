@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 
 class TodayView extends StatefulWidget {
-  const TodayView({super.key});
+  final ValueNotifier<DateTime?>? selectedDateNotifier;
+  const TodayView({super.key, this.selectedDateNotifier});
 
   @override
   State<TodayView> createState() => _TodayViewState();
@@ -18,32 +19,61 @@ class _TodayViewState extends State<TodayView> {
 
   String? surfaceForToday;
   final List<String> allLocations = [];
-  final List<String> tasksForToday = [];
+  final List<List<String>> _tasksPerLocation = [];
   List<List<bool>> _isCheckedPerLocation = [];
 
+  VoidCallback? _notifierListener;
+
+  void _applyDate(DateTime date) {
+    currentDay = _getDayFor(date);
+    currentWeek = _getWeekFor(date);
+    _loadTasksForDate(date);
+  }
 
   @override
   void initState() {
     super.initState();
-    currentDay = _getCurrentDay();
-    currentWeek = _getCurrentWeek();
-    _loadTasksForToday();
+    final now = DateTime.now();
+    currentDay = _getDayFor(now);
+    currentWeek = _getWeekFor(now);
+    _loadTasksForDate(now);
+
+    if (widget.selectedDateNotifier != null) {
+      _notifierListener = () {
+        final d = widget.selectedDateNotifier!.value;
+        if (d != null) {
+          _applyDate(d);
+        }
+      };
+      widget.selectedDateNotifier!.addListener(_notifierListener!);
+    }
   }
 
-  String _getCurrentDay() {
-    final now = DateTime.now();
-    const days = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri', 'Sambata', 'Duminica'];
-    return days[now.weekday - 1];
+  @override
+  void dispose() {
+    if (widget.selectedDateNotifier != null && _notifierListener != null) {
+      widget.selectedDateNotifier!.removeListener(_notifierListener!);
+    }
+    super.dispose();
   }
 
-  String _getCurrentWeek() {
-    final now = DateTime.now();
-    final weekOfYear = ((now.difference(DateTime(now.year, 1, 1)).inDays + 1) / 7).ceil();
+  String _getDayFor(DateTime d) {
+    const days = ['Luni','Marti','Miercuri','Joi','Vineri','Sambata','Duminica'];
+    return days[d.weekday - 1];
+  }
+
+  String _getWeekFor(DateTime d) {
+    final weekOfYear = ((d.difference(DateTime(d.year, 1, 1)).inDays + 1) / 7).ceil();
     return 'Uke ${(weekOfYear - 1) % 4 + 1}';
   }
 
-  Future<void> _loadTasksForToday() async {
+  Future<void> _loadTasksForDate(DateTime date) async {
     try {
+      final week = _getWeekFor(date);
+      final day = _getDayFor(date);
+      currentDay = day;
+      currentWeek = week;
+
       final dayRef = FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -58,7 +88,7 @@ class _TodayViewState extends State<TodayView> {
         setState(() {
           surfaceForToday = null;
           allLocations.clear();
-          tasksForToday.clear();
+          _tasksPerLocation.clear();
           _isCheckedPerLocation = [];
         });
         return;
@@ -73,7 +103,7 @@ class _TodayViewState extends State<TodayView> {
           .get();
 
       allLocations.clear();
-      tasksForToday.clear();
+      _tasksPerLocation.clear();
       _isCheckedPerLocation = [];
 
       if (locsSnap.docs.isEmpty) {
@@ -81,16 +111,15 @@ class _TodayViewState extends State<TodayView> {
         return;
       }
 
-      final first = locsSnap.docs.first.data();
-      final List<String> dayTasks = List<String>.from(first['tasks'] ?? const <String>[]);
-      tasksForToday.addAll(dayTasks);
-
       for (int li = 0; li < locsSnap.docs.length; li++) {
         final data = locsSnap.docs[li].data();
         allLocations.add(data['name']?.toString() ?? 'Locație ${li + 1}');
+        final List<String> tasks = List<String>.from(data['tasks'] ?? const <String>[]);
+        _tasksPerLocation.add(tasks);
+
         final Map<String, dynamic> doneMap = Map<String, dynamic>.from(data['done'] ?? {});
         final List<bool> row = List<bool>.generate(
-          dayTasks.length,
+          tasks.length,
           (ti) => (doneMap['$ti'] is bool) ? doneMap['$ti'] as bool : false,
         );
         _isCheckedPerLocation.add(row);
@@ -120,7 +149,8 @@ class _TodayViewState extends State<TodayView> {
         'done.$taskIdx': value,
       });
 
-      final allTasksDoneForLocation = _isCheckedPerLocation[locIdx].every((b) => b);
+      final allTasksDoneForLocation = _isCheckedPerLocation[locIdx].isNotEmpty &&
+          _isCheckedPerLocation[locIdx].every((b) => b);
       await _locationDocRef(locIdx).set(
         {'completed': allTasksDoneForLocation},
         SetOptions(merge: true),
@@ -169,7 +199,7 @@ class _TodayViewState extends State<TodayView> {
 
             // Tasks
             Expanded(
-              child: tasksForToday.isEmpty
+              child: (_tasksPerLocation.isEmpty || (_tasksPerLocation.isNotEmpty && _tasksPerLocation.every((l) => l.isEmpty)))
                   ? const Center(
                 child: Text("No tasks for today.",
                     style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -179,15 +209,15 @@ class _TodayViewState extends State<TodayView> {
                 children: [
                   if (allLocations.length > 1)
                     ...List.generate(allLocations.length, (locIdx) {
+                      final tasks = _tasksPerLocation[locIdx];
                       return ExpansionTile(
-                        title: Text(allLocations[locIdx],
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(allLocations[locIdx], style: const TextStyle(fontWeight: FontWeight.bold)),
                         children: [
-                          for (int ti = 0; ti < tasksForToday.length; ti++)
+                          for (int ti = 0; ti < tasks.length; ti++)
                             Card(
                               margin: const EdgeInsets.symmetric(vertical: 8.0),
                               child: ListTile(
-                                title: Text(tasksForToday[ti]),
+                                title: Text(tasks[ti]),
                                 trailing: Checkbox(
                                   value: _isCheckedPerLocation[locIdx][ti],
                                   onChanged: (bool? v) {
@@ -202,16 +232,14 @@ class _TodayViewState extends State<TodayView> {
                         ],
                       );
                     }),
-
                   if (allLocations.length == 1)
-                    ...List.generate(tasksForToday.length, (ti) {
-                      final checked = (_isCheckedPerLocation.isNotEmpty &&
-                          _isCheckedPerLocation[0][ti]);
+                    ...List.generate(_tasksPerLocation[0].length, (ti) {
+                      final checked = (_isCheckedPerLocation.isNotEmpty && _isCheckedPerLocation[0][ti]);
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8.0),
                         child: ListTile(
                           title: Text(
-                            tasksForToday[ti],
+                            _tasksPerLocation[0][ti],
                             style: TextStyle(
                               color: checked ? Colors.grey : Colors.black,
                               fontWeight: checked ? FontWeight.w300 : FontWeight.w500,
@@ -222,9 +250,7 @@ class _TodayViewState extends State<TodayView> {
                             onChanged: (bool? v) {
                               setState(() {
                                 if (_isCheckedPerLocation.isEmpty) {
-                                  _isCheckedPerLocation = [
-                                    List<bool>.filled(tasksForToday.length, false),
-                                  ];
+                                  _isCheckedPerLocation = [ List<bool>.filled(_tasksPerLocation[0].length, false), ];
                                 }
                                 _isCheckedPerLocation[0][ti] = v ?? false;
                               });
