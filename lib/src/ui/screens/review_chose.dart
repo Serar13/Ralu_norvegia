@@ -157,15 +157,12 @@ class _ReviewChoseState extends State<ReviewChose> {
                       final uid = FirebaseAuth.instance.currentUser?.uid;
                       if (uid == null) return;
 
-                      // scriem planul complet (weeklyTasks)
                       await FirestoreBootstrap.saveWeeklyPlan(
                         uid: uid,
                         planWeeks: planWeeks,
                         weekHeaders: weekHeaders,
                         defaultTasksPerDay: defaultTasks,
                       );
-
-                      // pregătim completedTasks (schelet/reset)
 
                       await FirestoreBootstrap.resetCompletedTasks(
                         uid: uid,
@@ -177,23 +174,18 @@ class _ReviewChoseState extends State<ReviewChose> {
                         weekHeaders: weekHeaders,
                       );
 
-                      // după creare: dacă emailul NU este verificat, delogăm și trimitem la login
-                      final currentUser = FirebaseAuth.instance.currentUser;
-                      if (currentUser == null || !currentUser.emailVerified) {
-                        await FirebaseAuth.instance.signOut();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Te rugăm să îți verifici emailul pentru a continua.')),
-                          );
-                          // dacă router-ul tău redirecționează automat userii delogați, poți duce la rădăcină
-                          try {
-                            context.go(loginPath); // ajustează dacă ai o constantă pentru login
-                          } catch (_) {
-                            context.go('/'); // fallback la ruta rădăcină
-                          }
-                        }
-                        return; // nu mai continua spre home
-                      }
+// DO NOT sign out here while email verification flow is disabled
+// final currentUser = FirebaseAuth.instance.currentUser;
+// if (currentUser == null || !currentUser.emailVerified) {
+//   await FirebaseAuth.instance.signOut();
+//   if (mounted) {
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       const SnackBar(content: Text('Te rugăm să îți verifici emailul pentru a continua.')),
+//     );
+//     context.go(loginPath);
+//   }
+//   return;
+// }
 
                       // dacă e verificat → mergem la home
                       if (mounted) {

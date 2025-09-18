@@ -20,15 +20,20 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   late TabController _tabController;
   ValueNotifier<int> pointsNotifier = ValueNotifier<int>(0); // ValueNotifier to track points
   final ValueNotifier<DateTime?> _selectedDateNotifier = ValueNotifier<DateTime?>(null);
+  ValueNotifier<int> streakNotifier = ValueNotifier<int>(0);
 
   Future<void> _loadUserData() async {
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists) {
         int points = doc.data()?['points'] ?? 0;
+        int streak = doc.data()?['streakCount'] ?? 0;
+
         pointsNotifier.value = points; // Update the ValueNotifier
+        streakNotifier.value = streak;
       } else {
         pointsNotifier.value = 0;
+        streakNotifier.value = 0;
       }
     } catch (e) {
       print("Failed to load user data: $e");
@@ -46,6 +51,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   void dispose() {
     _tabController.dispose();
     pointsNotifier.dispose(); // Dispose of the ValueNotifier when not needed
+    streakNotifier.dispose();
     _selectedDateNotifier.dispose();
     super.dispose();
   }
@@ -74,12 +80,15 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
               ),
               child: Row(
                 children: [
-                  Icon(Icons.control_point_duplicate_sharp, color: Colors.white, size: 16.0),
+                  const Icon(Icons.local_fire_department, color: Colors.white, size: 16.0),
                   const SizedBox(width: 4.0),
                   ValueListenableBuilder<int>(
-                    valueListenable: pointsNotifier, // Listen to changes in pointsNotifier
-                    builder: (context, points, _) {
-                      return Text(points.toString(), style: const TextStyle(color: Colors.white, fontSize: 16.0));
+                    valueListenable: streakNotifier, // folosim streak-ul în loc de points
+                    builder: (context, streak, _) {
+                      return Text(
+                        streak.toString(),
+                        style: const TextStyle(color: Colors.white, fontSize: 16.0),
+                      );
                     },
                   ),
                 ],

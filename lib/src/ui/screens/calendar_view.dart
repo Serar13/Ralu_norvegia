@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
+import 'package:ralu_norvegia/src/utils/week_utils.dart';
 
 class CalendarWeekView extends StatefulWidget {
   const CalendarWeekView({super.key});
@@ -12,7 +13,16 @@ class CalendarWeekView extends StatefulWidget {
 }
 
 class _CalendarWeekViewState extends State<CalendarWeekView> {
+  DateTime? _accountCreatedAt;
   final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+  bool _isWithinAccountRange(DateTime d) {
+    if (_accountCreatedAt == null) return false;
+    final cd = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
+    final today = DateTime.now();
+    final dd = DateTime(d.year, d.month, d.day);
+    return !dd.isBefore(cd) && !dd.isAfter(today);
+  }
 
   late DateTime _focusedDay;
   late DateTime _selectedDay;
@@ -34,7 +44,31 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
     _selectedDay = _focusedDay;
     _monday = _startOfWeek(_focusedDay);
     _friday = _monday.add(const Duration(days: 4));
-    _attachCurrentWeekListeners();
+
+    _loadAccountCreatedDate().then((_) {
+      _loadAllProgressFromAccountCreation();
+
+      if (_isCurrentIsoWeek(_monday)) {
+        _ensureWeekInitializedForMonday(_monday).then((_) {
+          if (mounted) _attachCurrentWeekListeners();
+        });
+      } else {
+        if (mounted) _attachCurrentWeekListeners();
+      }
+    });
+  }
+
+  Future<void> _loadAccountCreatedDate() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    final ts = doc.data()?['createdAt'];
+    if (ts is Timestamp) {
+      _accountCreatedAt = ts.toDate();
+    } else {
+      _accountCreatedAt = DateTime.now(); // fallback de siguranță
+    }
   }
 
   void _attachCurrentWeekListeners() {
@@ -44,7 +78,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
     for (int i = 0; i < 5; i++) {
       final day = _monday.add(Duration(days: i));
-      final week = _weekLabel(day);
+      final week = _yearWeekKey(day);
       final dayName = _dayKey(day);
       final key = _dateKeyInt(day);
 
@@ -73,6 +107,44 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
       _weekSubs.add(sub);
     }
+  }
+
+  Future<void> _loadAllProgressFromAccountCreation() async {
+    final creationDate = FirebaseAuth.instance.currentUser!.metadata.creationTime!;
+    final now = DateTime.now();
+    DateTime current = _startOfWeek(creationDate); // luni din săptămâna contului
+
+    while (!current.isAfter(now)) {
+      final weekKey = _yearWeekKey(current);
+      for (int i = 0; i < 5; i++) {
+        final day = current.add(Duration(days: i));
+        final dayName = _dayKey(day);
+        final key = _dateKeyInt(day);
+
+        final locs = await FirebaseFirestore.instance
+            .collection('users').doc(uid)
+            .collection('userProgress').doc(weekKey)
+            .collection('days').doc(dayName)
+            .collection('locations')
+            .get();
+
+        int done = 0, total = 0;
+        for (final d in locs.docs) {
+          final data = d.data();
+          final tasks = List<String>.from(data['tasks'] ?? const <String>[]);
+          final doneMap = Map<String, dynamic>.from(data['done'] ?? {});
+          total += tasks.length;
+          for (int i = 0; i < tasks.length; i++) {
+            if ((doneMap['$i'] ?? false) == true) done++;
+          }
+        }
+        final progress = total == 0 ? 0.0 : (done / total);
+        _progressCache[key] = progress;
+      }
+      current = current.add(const Duration(days: 7));
+    }
+
+    if (mounted) setState(() {});
   }
 
   @override
@@ -112,6 +184,13 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   DateTime _startOfWeek(DateTime d) =>
       DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
 
+  // Este aceeași săptămână ISO ca azi?
+  bool _isCurrentIsoWeek(DateTime anyDayOfWeek) {
+    final idNow = weekIdFor(DateTime.now());
+    final idThat = weekIdFor(anyDayOfWeek);
+    return idNow == idThat;
+  }
+
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -133,18 +212,111 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
     return map[d.weekday]!;
   }
 
-  String _weekLabel(DateTime d) {
-    final startOfYear = DateTime(d.year, 1, 1);
-    final days = d.difference(startOfYear).inDays + 1;
-    final weekOfYear = (days / 7).ceil();
-    final ukeIndex = (weekOfYear - 1) % 4 + 1;
-    return 'Uke $ukeIndex';
+  Future<void> _ensureWeekInitializedForMonday(DateTime monday) async {
+    if (!_isCurrentIsoWeek(monday)) return;
+
+    int isoWeekNumber(DateTime date) {
+      final thursday = date.add(Duration(days: 3 - ((date.weekday + 6) % 7)));
+      final firstThursday = DateTime(thursday.year, 1, 4);
+      final firstWeekStart =
+          firstThursday.subtract(Duration(days: (firstThursday.weekday + 6) % 7));
+      return ((thursday.difference(firstWeekStart).inDays) / 7).floor() + 1;
+    }
+    String ukeFor(DateTime d) {
+      final w = isoWeekNumber(d);
+      final idx = ((w - 1) % 4) + 1;
+      return 'Uke $idx';
+    }
+
+    final weekKey = _yearWeekKey(monday);
+    final weekRef = FirebaseFirestore.instance
+        .collection('users').doc(uid)
+        .collection('userProgress').doc(weekKey);
+
+    // dacă există deja vreo zi, ne oprim
+    for (final dn in const ['Luni','Marti','Miercuri','Joi','Vineri']) {
+      final snap = await weekRef.collection('days').doc(dn).get();
+      if (snap.exists) return;
+    }
+
+    final uke = ukeFor(monday);
+    for (final dn in const ['Luni','Marti','Miercuri','Joi','Vineri']) {
+      final legacy = await FirebaseFirestore.instance
+          .collection('users').doc(uid)
+          .collection('weeklyTasks').doc(uke)
+          .collection('days').doc(dn)
+          .get();
+
+      if (!legacy.exists) {
+        await weekRef.collection('days').doc(dn).set({});
+        continue;
+      }
+
+      final data = legacy.data() as Map<String, dynamic>;
+      final suprafata = data['suprafata'];
+      final nrLoc = int.tryParse('${data['nrLoc'] ?? '0'}') ?? 0;
+      final List<String> tasks = List<String>.from(data['tasks'] ?? const <String>[]);
+
+      await weekRef.collection('days').doc(dn).set({
+        if (suprafata != null) 'suprafata': suprafata,
+      }, SetOptions(merge: true));
+
+      for (int i = 0; i < nrLoc; i++) {
+        final key = (i == 0) ? 'locatie' : 'locatie$i';
+        final name = (data[key]?.toString().trim().isNotEmpty ?? false)
+            ? data[key].toString()
+            : 'Locație ${i + 1}';
+        await weekRef
+            .collection('days').doc(dn)
+            .collection('locations').doc('loc_$i')
+            .set({
+          'index': i,
+          'name': name,
+          'tasks': tasks,
+        }, SetOptions(merge: true));
+      }
+    }
+  }
+
+  // String _weekLabel(DateTime d) {
+  //   final startOfYear = DateTime(d.year, 1, 1);
+  //   final days = d.difference(startOfYear).inDays + 1;
+  //   final weekOfYear = (days / 7).ceil();
+  //   final ukeIndex = (weekOfYear - 1) % 4 + 1;
+  //   return 'Uke $ukeIndex';
+  // }
+
+  // ===== ISO week helpers =====
+  int _isoWeekday(DateTime d) => d.weekday; // 1=Mon .. 7=Sun
+
+  int _isoWeekYear(DateTime date) {
+    // ISO year = anul zilei de joi din săptămâna curentă
+    final thursday = date.add(Duration(days: 3 - ((_isoWeekday(date) + 6) % 7)));
+    return thursday.year;
+  }
+
+  int _isoWeekNumber(DateTime date) {
+    // Mutăm pe joi (ISO)
+    final thursday = date.add(Duration(days: 3 - ((_isoWeekday(date) + 6) % 7)));
+    // Prima joi din anul ISO
+    final firstThursday = DateTime(thursday.year, 1, 4);
+    // Începutul săptămânii ce conține 4 ianuarie (start ISO week 1)
+    final firstWeekStart =
+    firstThursday.subtract(Duration(days: (firstThursday.weekday + 6) % 7));
+    return ((thursday.difference(firstWeekStart).inDays) / 7).floor() + 1;
+  }
+
+  /// Cheie unică de săptămână: Y2025-W36
+  String _yearWeekKey(DateTime d) {
+    final week = _isoWeekNumber(d);
+    final year = _isoWeekYear(d);
+    return 'Y$year-W${week.toString().padLeft(2, '0')}';
   }
 
   Future<double> _completionForDay(DateTime date) async {
     // Compute progress for *any* date (past/current/future). If the
     // data for that week/day doesn't exist yet, we fall back to 0.0.
-    final week = _weekLabel(date);
+    final week = _yearWeekKey(date);
     final day = _dayKey(date);
 
     final locs = await FirebaseFirestore.instance
@@ -191,8 +363,8 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: TableCalendar(
-              firstDay: DateTime.utc(2024, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
+              firstDay: _accountCreatedAt ?? DateTime.now(),
+              lastDay: DateTime.now(),
               focusedDay: _focusedDay,
               calendarFormat: CalendarFormat.month,
               startingDayOfWeek: StartingDayOfWeek.monday,
@@ -219,9 +391,9 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                 outsideTextStyle: const TextStyle(color: Colors.white38),
               ),
               onDaySelected: (selectedDay, focusedDay) async {
-                if (!_isSelectable(selectedDay)) {
+                if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nu poți selecta zile în afara săptămânii curente sau în avans.')),
+                    const SnackBar(content: Text('Nu poți selecta zile în afara săptămânii curente, în avans sau înainte de crearea contului.')),
                   );
                   return;
                 }
@@ -231,14 +403,34 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                 });
                 Navigator.of(context).pop<DateTime>(selectedDay);
               },
-              onPageChanged: (focusedDay) {
-                setState(() => _focusedDay = focusedDay);
+              onPageChanged: (focusedDay) async {
+                setState(() {
+                  _focusedDay = focusedDay;
+                  _monday = _startOfWeek(_focusedDay);
+                  _friday = _monday.add(const Duration(days: 4));
+                });
+                // Lazy-create doar pentru săptămâna curentă
+                if (_isCurrentIsoWeek(_monday)) {
+                  await _ensureWeekInitializedForMonday(_monday);
+                }
+                if (mounted) {
+                  _attachCurrentWeekListeners();
+                }
               },
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: (context, day, focusedDay) {
                   final isPastW = _isPastWeek(day);
                   final isFutureW = _isFutureWeek(day);
                   final isFutureCur = _isFutureInCurrentWeek(day);
+
+                  // Zile în afara intervalului contului: estompat complet
+                  if (!_isWithinAccountRange(day)) {
+                    return Container(
+                      decoration: const BoxDecoration(shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
+                    );
+                  }
 
                   // Săptămâni viitoare: estompat
                   if (isFutureW) {
@@ -300,6 +492,12 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                   );
                 },
                 todayBuilder: (context, day, focusedDay) {
+                  if (!_isWithinAccountRange(day)) {
+                    return Container(
+                      alignment: Alignment.center,
+                      child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
+                    );
+                  }
                   if (!_isInCurrentWorkWeek(day)) {
                     return Container(
                       alignment: Alignment.center,
@@ -320,7 +518,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                   );
                 },
                 selectedBuilder: (context, day, focusedDay) {
-                  if (!_isSelectable(day)) {
+                  if (!_isSelectable(day) || !_isWithinAccountRange(day)) {
                     return Container(
                       alignment: Alignment.center,
                       child: Text('${day.day}', style: const TextStyle(color: Colors.white54)),

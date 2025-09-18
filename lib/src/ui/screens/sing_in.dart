@@ -88,6 +88,8 @@ class _singInViewState extends State<singInView> {
       'email': email,
       'phone number': phoneNumber,
       'points': 0,
+      'streakCount': 0,
+      'lastActiveDay': null,
     });
 
     // Initialize sub-collection "completedTasks" with all tasks set to false

@@ -47,9 +47,8 @@ class _logInViewState extends State<logInView> {
           );
 
           final User? user = userCredential.user;
-coment           // EMAIL VERIFICATION CHECK TEMPORARILY DISABLED – allow login regardless of verification state
           if (user != null) {
-            await checkUserTasks(user.uid, context);
+            await _postLoginRoute(); // migrare + lasă redirect-ul să decidă
           }
         }
       } on FirebaseAuthException catch (e) {
@@ -116,36 +115,40 @@ coment           // EMAIL VERIFICATION CHECK TEMPORARILY DISABLED – allow logi
   */
 
 
-  Future<void> checkUserTasks(String userId, BuildContext context) async {
+  Future<void> _postLoginRoute() async {
+    final u = FirebaseAuth.instance.currentUser;
+    if (u == null) return;
     try {
-      print("Verific userId: $userId"); // Debugging
-      final weeklyTasksRef = FirebaseFirestore.instance
+      final userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(userId)
-          .collection('weeklyTasks');
+          .doc(u.uid)
+          .get();
+      final setupDone = (userDoc.data()?['setupDone'] == true);
 
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('weeklyTasks')
-          .doc('Uke 1')
-          .collection('days')
-          .doc('Luni');
-
-      final docSnapshot = await docRef.get();
-      if (docSnapshot.exists) {
-        print('Document exists: ${docSnapshot.data()}');
-        GoRouter.of(context).go(homePath);
-      } else {
-        print('Document does not exist');
-        GoRouter.of(context).go(ChooseOptionPath, extra: {'userId': userId});
+      // Migrare: dacă userul are deja weeklyTasks (legacy) dar setupDone e fals, îl setăm true
+      if (!setupDone) {
+        final luniDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(u.uid)
+            .collection('weeklyTasks')
+            .doc('Uke 1')
+            .collection('days')
+            .doc('Luni')
+            .get();
+        if (luniDoc.exists) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(u.uid)
+              .set({'setupDone': true}, SetOptions(merge: true));
+        }
       }
-    } catch (e) {
-      print("Eroare în checkUserTasks: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+    } catch (_) {
+      // ignorăm erorile de migrare – redirect-ul tot va decide corect
     }
+
+    if (!mounted) return;
+    // Trimitem spre home; dacă setupDone e fals, redirect-ul din AppRouter te duce singur la RoomsSetup
+    context.go(homePath);
   }
 
   @override

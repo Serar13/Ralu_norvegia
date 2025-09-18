@@ -14,7 +14,8 @@ class dailyView extends StatefulWidget {
   State<dailyView> createState() => _dailyViewState();
 }
 
-class _dailyViewState extends State<dailyView> {
+class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixin {
+  Future<Map<String, bool>>? _tasksFuture;
   final List<Map<String, dynamic>> dailyItems = [];
   final user = FirebaseAuth.instance.currentUser!;
   bool _allTasksCompleted = false;
@@ -39,7 +40,11 @@ class _dailyViewState extends State<dailyView> {
     super.initState();
     _checkAndResetForNewDay(); // Verificăm și resetăm dacă este o zi nouă
     getDocId();
+    _tasksFuture = _fetchUserTasks();
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
 // Checks and resets tasks if it's a new day
   Future<void> _checkAndResetForNewDay() async {
@@ -128,6 +133,7 @@ class _dailyViewState extends State<dailyView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: _allTasksCompleted
@@ -156,7 +162,7 @@ class _dailyViewState extends State<dailyView> {
         ),
       )
           : FutureBuilder(
-        future: _fetchUserTasks(), // Fetch tasks for the current user
+        future: _tasksFuture, // Fetch tasks for the current user
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
