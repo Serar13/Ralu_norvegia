@@ -31,15 +31,26 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
   // Cache progress per day (date-only key) to avoid async flicker
   final Map<int, double> _progressCache = {};
+  final Map<int, double> _liveWeekCache = {};
   final List<StreamSubscription> _weekSubs = [];
 
   int _dateKeyInt(DateTime d) => DateTime(d.year, d.month, d.day).millisecondsSinceEpoch;
 
-  double? _cachedProgress(DateTime d) => _progressCache[_dateKeyInt(d)];
+  double? _cachedProgress(DateTime d) {
+    final key = _dateKeyInt(d);
+    final val = _progressCache[key];
+    final live = _liveWeekCache[key];
+    debugPrint("🔍 _cachedProgress($d) => progress=$val live=$live");
+    if (_isInCurrentWorkWeek(d)) {
+      return live ?? val;
+    }
+    return val;
+  }
 
   @override
   void initState() {
     super.initState();
+    debugPrint("🚀 CalendarWeekView initState");
     _focusedDay = DateTime.now();
     _selectedDay = _focusedDay;
     _monday = _startOfWeek(_focusedDay);
@@ -50,10 +61,9 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
       if (_isCurrentIsoWeek(_monday)) {
         _ensureWeekInitializedForMonday(_monday).then((_) {
-          if (mounted) _attachCurrentWeekListeners();
+          if (!mounted) return;
+          _attachCurrentWeekListeners();
         });
-      } else {
-        if (mounted) _attachCurrentWeekListeners();
       }
     });
   }
@@ -72,6 +82,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   }
 
   void _attachCurrentWeekListeners() {
+    debugPrint("🔗 Attaching listeners for week $_monday - $_friday");
     // Cancel previous listeners
     for (final s in _weekSubs) { s.cancel(); }
     _weekSubs.clear();
@@ -100,8 +111,12 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
           }
         }
         final value = total == 0 ? 0.0 : (done / total);
+        debugPrint("📡 Live update $dayName ($day): $value");
         if (mounted) {
-          setState(() { _progressCache[key] = value; });
+          setState(() {
+            _liveWeekCache[key] = value;
+            debugPrint("💾 Updated liveWeekCache[$key] = $value");
+          });
         }
       });
 
@@ -149,7 +164,9 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
   @override
   void dispose() {
+    debugPrint("🛑 CalendarWeekView dispose");
     for (final s in _weekSubs) { s.cancel(); }
+    _liveWeekCache.clear();
     super.dispose();
   }
 
@@ -159,13 +176,15 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   bool _isPastWeek(DateTime d) {
+    final todayMonday = _startOfWeek(DateTime.now());
     final dd = DateTime(d.year, d.month, d.day);
-    return dd.isBefore(_monday);
+    return dd.isBefore(todayMonday);
   }
 
   bool _isFutureWeek(DateTime d) {
+    final todayFriday = _startOfWeek(DateTime.now()).add(const Duration(days: 4));
     final dd = DateTime(d.year, d.month, d.day);
-    return dd.isAfter(_friday);
+    return dd.isAfter(todayFriday);
   }
 
   bool _isFutureInCurrentWeek(DateTime d) {
@@ -195,8 +214,54 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   bool _isInCurrentWorkWeek(DateTime d) {
+    final todayMonday = _startOfWeek(DateTime.now());
+    final todayFriday = todayMonday.add(const Duration(days: 4));
     final dd = DateTime(d.year, d.month, d.day);
-    return !dd.isBefore(_monday) && !dd.isAfter(_friday);
+    return !dd.isBefore(todayMonday) && !dd.isAfter(todayFriday);
+  }
+
+  Future<void> _loadAllProgressForMonth(DateTime date) async {
+    debugPrint("📅 Start loading month ${date.month}/${date.year}");
+    final firstOfMonth = DateTime(date.year, date.month, 1);
+    final lastOfMonth = DateTime(date.year, date.month + 1, 0);
+
+    DateTime current = _startOfWeek(firstOfMonth);
+
+    while (!current.isAfter(lastOfMonth)) {
+      final weekKey = _yearWeekKey(current);
+      for (int i = 0; i < 5; i++) {
+        final day = current.add(Duration(days: i));
+        final dayName = _dayKey(day);
+        final key = _dateKeyInt(day);
+
+        final locs = await FirebaseFirestore.instance
+            .collection('users').doc(uid)
+            .collection('userProgress').doc(weekKey)
+            .collection('days').doc(dayName)
+            .collection('locations')
+            .get();
+
+        int done = 0, total = 0;
+        for (final d in locs.docs) {
+          final data = d.data();
+          final tasks = List<String>.from(data['tasks'] ?? const <String>[]);
+          final doneMap = Map<String, dynamic>.from(data['done'] ?? {});
+          total += tasks.length;
+          for (int i = 0; i < tasks.length; i++) {
+            if ((doneMap['$i'] ?? false) == true) done++;
+          }
+        }
+        final progress = total == 0 ? 0.0 : (done / total);
+        debugPrint("  ➡️ Saving progress for $day = $progress");
+        if (!_progressCache.containsKey(key)) {
+          _progressCache[key] = progress;
+        }
+      }
+      current = current.add(const Duration(days: 7));
+    }
+
+    debugPrint("✅ Finished loading month ${date.month}/${date.year}");
+    if (mounted) setState(() {});
   }
 
   String _dayKey(DateTime d) {
@@ -351,6 +416,12 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
   @override
   Widget build(BuildContext context) {
+    if (_accountCreatedAt == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.primary,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendar (săptămâna curentă)'),
@@ -363,7 +434,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: TableCalendar(
-              firstDay: _accountCreatedAt ?? DateTime.now(),
+              firstDay: _accountCreatedAt!,
               lastDay: DateTime.now(),
               focusedDay: _focusedDay,
               calendarFormat: CalendarFormat.month,
@@ -376,7 +447,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
               ),
               calendarStyle: CalendarStyle(
                 isTodayHighlighted: true,
-                outsideDaysVisible: true,
+                outsideDaysVisible: false,
                 todayDecoration: BoxDecoration(
                   color: AppColors.accent3.withOpacity(0.25),
                   shape: BoxShape.circle,
@@ -403,20 +474,40 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                 });
                 Navigator.of(context).pop<DateTime>(selectedDay);
               },
-              onPageChanged: (focusedDay) async {
-                setState(() {
-                  _focusedDay = focusedDay;
-                  _monday = _startOfWeek(_focusedDay);
-                  _friday = _monday.add(const Duration(days: 4));
-                });
-                // Lazy-create doar pentru săptămâna curentă
-                if (_isCurrentIsoWeek(_monday)) {
-                  await _ensureWeekInitializedForMonday(_monday);
-                }
-                if (mounted) {
-                  _attachCurrentWeekListeners();
-                }
-              },
+                onPageChanged: (focusedDay) async {
+                  debugPrint("📖 Page changed to ${focusedDay.month}/${focusedDay.year}");
+                  debugPrint("📖 onPageChanged START ${focusedDay.month}/${focusedDay.year}");
+                  await _loadAllProgressForMonth(focusedDay);
+                  debugPrint("📖 after _loadAllProgressForMonth");
+                  if (!mounted) return;
+
+                  final monday = _startOfWeek(focusedDay);
+                  final friday = monday.add(const Duration(days: 4));
+
+                  final thisMonday = _startOfWeek(DateTime.now());
+                  if (_isSameDay(monday, thisMonday)) {
+                    await _ensureWeekInitializedForMonday(monday);
+                    if (!mounted) return;
+                    _attachCurrentWeekListeners();
+                  }
+
+                  if (!mounted) return;
+                  setState(() {
+                    final safeFocus = DateTime(focusedDay.year, focusedDay.month, 15);
+                    if (safeFocus.isBefore(_accountCreatedAt!)) {
+                      _focusedDay = _accountCreatedAt!;
+                    } else if (safeFocus.isAfter(DateTime.now())) {
+                      _focusedDay = DateTime.now();
+                    } else {
+                      _focusedDay = safeFocus;
+                    }
+                    _monday = monday;
+                    _friday = friday;
+                    debugPrint("📖 setState DONE focus=$_focusedDay");
+                    debugPrint("🖼️ State updated: focus=$_focusedDay mon=$_monday fri=$_friday");
+                  });
+                  debugPrint("📖 onPageChanged END ${focusedDay.month}/${focusedDay.year}");
+                },
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: (context, day, focusedDay) {
                   final isPastW = _isPastWeek(day);
@@ -443,27 +534,25 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
                   // Săptămâni trecute: culoare după progres + lacăt
                   if (isPastW) {
-                    return FutureBuilder<double>(
-                      future: _completionForDay(day),
-                      builder: (context, snap) {
-                        final p = snap.data ?? 0.0;
-                        final color = _colorForProgress(p).withOpacity(0.25);
-                        return Stack(
+                    final p = _cachedProgress(day);
+                    final color = p == null
+                        ? Colors.white24.withOpacity(0.15) // fallback până vin datele
+                        : _colorForProgress(p).withOpacity(0.25);
+
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                           alignment: Alignment.center,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                              alignment: Alignment.center,
-                              child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                            ),
-                            const Positioned(
-                              right: 2,
-                              bottom: 2,
-                              child: Icon(Icons.lock, size: 12, color: Colors.white70),
-                            ),
-                          ],
-                        );
-                      },
+                          child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
+                        ),
+                        const Positioned(
+                          right: 2,
+                          bottom: 2,
+                          child: Icon(Icons.lock, size: 12, color: Colors.white70),
+                        ),
+                      ],
                     );
                   }
 

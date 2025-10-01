@@ -8,6 +8,8 @@ import 'package:ralu_norvegia/src/ui/screens/calendar_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/daily_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/today_view.dart';
 
+import '../../utils/streak_utils.dart';
+
 class homeView extends StatefulWidget {
   const homeView({super.key});
 
@@ -27,9 +29,9 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists) {
         int points = doc.data()?['points'] ?? 0;
-        int streak = doc.data()?['streakCount'] ?? 0;
+        pointsNotifier.value = points;
 
-        pointsNotifier.value = points; // Update the ValueNotifier
+        final streak = await calculateStreak(user.uid);
         streakNotifier.value = streak;
       } else {
         pointsNotifier.value = 0;
@@ -129,7 +131,10 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
       body: TabBarView(
         controller: _tabController,
         children: [
-          TodayView(selectedDateNotifier: _selectedDateNotifier),
+          TodayView(
+            selectedDateNotifier: _selectedDateNotifier,
+            streakNotifier: streakNotifier,
+          ),
           dailyView(pointsNotifier: pointsNotifier), // Pass the pointsNotifier to dailyView
         ],
       ),

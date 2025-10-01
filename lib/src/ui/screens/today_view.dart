@@ -4,9 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/utils/week_utils.dart';
 
+import '../../utils/streak_utils.dart';
+
 class TodayView extends StatefulWidget {
   final ValueNotifier<DateTime?>? selectedDateNotifier;
-  const TodayView({super.key, this.selectedDateNotifier});
+  final ValueNotifier<int> streakNotifier;
+  const TodayView({super.key, this.selectedDateNotifier, required this.streakNotifier,});
 
   @override
   State<TodayView> createState() => _TodayViewState();
@@ -33,6 +36,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
     currentWeek = _getWeekFor(date);
     _loadTasksForDate(date);
   }
+
 
   @override
   bool get wantKeepAlive => true;
@@ -244,6 +248,32 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
   Future<void> _saveCheckboxState(int locIdx, int taskIdx, bool value) async {
     try {
+      final allTasksDoneForDay = _isCheckedPerLocation.isNotEmpty &&
+          _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
+
+      // dacă toate erau bifate și userul vrea să scoată una → întreabă
+      if (allTasksDoneForDay && !value) {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Decomplete day?"),
+            content: const Text("This will affect your streak. Are you sure?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+              ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Yes")),
+            ],
+          ),
+        ) ?? false;
+
+        if (!confirm) {
+          // dacă refuză, menține bifa
+          setState(() {
+            _isCheckedPerLocation[locIdx][taskIdx] = true;
+          });
+          return;
+        }
+      }
+
       await _locationDocRef(locIdx).update({
         'done.$taskIdx': value,
       });
@@ -255,9 +285,13 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
         SetOptions(merge: true),
       );
 
+      // după orice schimbare recalculează streak-ul
+      final streak = await calculateStreak(user.uid);
+      widget.streakNotifier.value = streak;
+
+      // dacă toate sunt bifate → dialog de confirmare
       final allDone = _isCheckedPerLocation.isNotEmpty &&
           _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
-
       if (allDone) {
         _showCompletionDialog(context);
       }
@@ -314,7 +348,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Current Week: $currentWeek",
+                      Text("Current Week: ${_ukeFor(DateTime.now())}",
                           style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       Text("Day: $currentDay",
@@ -423,8 +457,9 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () {
-                _incrementStreak();
+              onPressed: () async {
+                final streak = await calculateStreak(user.uid);
+                widget.streakNotifier.value = streak;
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Great! You finished cleaning for $currentDay!")),
