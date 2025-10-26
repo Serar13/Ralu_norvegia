@@ -9,6 +9,7 @@ import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/screens/calendar_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/daily_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/today_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../utils/streak_utils.dart';
@@ -27,8 +28,18 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   final ValueNotifier<DateTime?> _selectedDateNotifier = ValueNotifier<DateTime?>(null);
   ValueNotifier<int> streakNotifier = ValueNotifier<int>(0);
   bool _pulse = false;
+  bool isLoading = true;
 
   Future<void> _loadUserData() async {
+    setState(() => isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+
+    // Load cached streak if exists
+    final cachedStreak = prefs.getInt('lastStreak');
+    if (cachedStreak != null) {
+      streakNotifier.value = cachedStreak;
+    }
+
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists) {
@@ -37,12 +48,15 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
 
         final streak = await calculateStreak(user.uid);
         streakNotifier.value = streak;
+        await prefs.setInt('lastStreak', streak);
       } else {
         pointsNotifier.value = 0;
         streakNotifier.value = 0;
       }
     } catch (e) {
       print("Failed to load user data: $e");
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -183,6 +197,16 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
                       ValueListenableBuilder<int>(
                         valueListenable: streakNotifier,
                         builder: (context, streak, _) {
+                          if (isLoading) {
+                            return const Text(
+                              "–",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 17.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          }
                           return Text(
                             streak.toString(),
                             style: const TextStyle(
