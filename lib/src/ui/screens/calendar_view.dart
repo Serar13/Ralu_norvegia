@@ -125,7 +125,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   }
 
   Future<void> _loadAllProgressFromAccountCreation() async {
-    final creationDate = FirebaseAuth.instance.currentUser!.metadata.creationTime!;
+    final creationDate = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
     final now = DateTime.now();
     DateTime current = _startOfWeek(creationDate); // luni din săptămâna contului
 
@@ -431,49 +431,50 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
       backgroundColor: AppColors.primary,
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: TableCalendar(
-              firstDay: _accountCreatedAt!,
-              lastDay: DateTime.now(),
-              focusedDay: _focusedDay,
-              calendarFormat: CalendarFormat.month,
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              selectedDayPredicate: (day) => _isSameDay(day, _selectedDay),
-              availableGestures: AvailableGestures.horizontalSwipe,
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-              ),
-              calendarStyle: CalendarStyle(
-                isTodayHighlighted: true,
-                outsideDaysVisible: false,
-                todayDecoration: BoxDecoration(
-                  color: AppColors.accent3.withOpacity(0.25),
-                  shape: BoxShape.circle,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: TableCalendar(
+                firstDay: _accountCreatedAt!,
+                lastDay: DateTime.now(),
+                focusedDay: _focusedDay,
+                calendarFormat: CalendarFormat.month,
+                startingDayOfWeek: StartingDayOfWeek.monday,
+                selectedDayPredicate: (day) => _isSameDay(day, _selectedDay),
+                availableGestures: AvailableGestures.horizontalSwipe,
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
                 ),
-                selectedDecoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
+                calendarStyle: CalendarStyle(
+                  isTodayHighlighted: true,
+                  outsideDaysVisible: false,
+                  todayDecoration: BoxDecoration(
+                    color: AppColors.accent3.withOpacity(0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  selectedTextStyle: const TextStyle(color: Colors.black),
+                  weekendTextStyle: const TextStyle(color: Colors.white70),
+                  defaultTextStyle: const TextStyle(color: Colors.white),
+                  outsideTextStyle: const TextStyle(color: Colors.white38),
                 ),
-                selectedTextStyle: const TextStyle(color: Colors.black),
-                weekendTextStyle: const TextStyle(color: Colors.white70),
-                defaultTextStyle: const TextStyle(color: Colors.white),
-                outsideTextStyle: const TextStyle(color: Colors.white38),
-              ),
-              onDaySelected: (selectedDay, focusedDay) async {
-                if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nu poți selecta zile în afara săptămânii curente, în avans sau înainte de crearea contului.')),
-                  );
-                  return;
-                }
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-                Navigator.of(context).pop<DateTime>(selectedDay);
-              },
+                onDaySelected: (selectedDay, focusedDay) async {
+                  if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Nu poți selecta zile în afara săptămânii curente, în avans sau înainte de crearea contului.')),
+                    );
+                    return;
+                  }
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                  Navigator.of(context).pop<DateTime>(selectedDay);
+                },
                 onPageChanged: (focusedDay) async {
                   debugPrint("📖 Page changed to ${focusedDay.month}/${focusedDay.year}");
                   debugPrint("📖 onPageChanged START ${focusedDay.month}/${focusedDay.year}");
@@ -494,10 +495,12 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                   if (!mounted) return;
                   setState(() {
                     final safeFocus = DateTime(focusedDay.year, focusedDay.month, 15);
-                    if (safeFocus.isBefore(_accountCreatedAt!)) {
-                      _focusedDay = _accountCreatedAt!;
-                    } else if (safeFocus.isAfter(DateTime.now())) {
-                      _focusedDay = DateTime.now();
+                    final first = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
+                    final last = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                    if (safeFocus.isBefore(first)) {
+                      _focusedDay = first;
+                    } else if (safeFocus.isAfter(last)) {
+                      _focusedDay = last;
                     } else {
                       _focusedDay = safeFocus;
                     }
@@ -508,120 +511,121 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                   });
                   debugPrint("📖 onPageChanged END ${focusedDay.month}/${focusedDay.year}");
                 },
-              calendarBuilders: CalendarBuilders(
-                defaultBuilder: (context, day, focusedDay) {
-                  final isPastW = _isPastWeek(day);
-                  final isFutureW = _isFutureWeek(day);
-                  final isFutureCur = _isFutureInCurrentWeek(day);
+                calendarBuilders: CalendarBuilders(
+                  defaultBuilder: (context, day, focusedDay) {
+                    final isPastW = _isPastWeek(day);
+                    final isFutureW = _isFutureWeek(day);
+                    final isFutureCur = _isFutureInCurrentWeek(day);
 
-                  // Zile în afara intervalului contului: estompat complet
-                  if (!_isWithinAccountRange(day)) {
-                    return Container(
-                      decoration: const BoxDecoration(shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
-                    );
-                  }
+                    // Zile în afara intervalului contului: estompat complet
+                    if (!_isWithinAccountRange(day)) {
+                      return Container(
+                        decoration: const BoxDecoration(shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
+                      );
+                    }
 
-                  // Săptămâni viitoare: estompat
-                  if (isFutureW) {
-                    return Container(
-                      decoration: const BoxDecoration(shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: Text('${day.day}', style: const TextStyle(color: Colors.white38)),
-                    );
-                  }
+                    // Săptămâni viitoare: estompat
+                    if (isFutureW) {
+                      return Container(
+                        decoration: const BoxDecoration(shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: Text('${day.day}', style: const TextStyle(color: Colors.white38)),
+                      );
+                    }
 
-                  // Săptămâni trecute: culoare după progres + lacăt
-                  if (isPastW) {
+                    // Săptămâni trecute: culoare după progres + lacăt
+                    if (isPastW) {
+                      final p = _cachedProgress(day);
+                      final color = p == null
+                          ? Colors.white24.withOpacity(0.15) // fallback până vin datele
+                          : _colorForProgress(p).withOpacity(0.25);
+
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                            alignment: Alignment.center,
+                            child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
+                          ),
+                          const Positioned(
+                            right: 2,
+                            bottom: 2,
+                            child: Icon(Icons.lock, size: 12, color: Colors.white70),
+                          ),
+                        ],
+                      );
+                    }
+
+                    // Zile viitoare din săptămâna curentă: marcate, dar blocate
+                    if (isFutureCur) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white24.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white30, width: 1),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text('${day.day}', style: const TextStyle(color: Colors.white60)),
+                      );
+                    }
+
+                    // Zile valide (curente până la azi): culoare după progres
                     final p = _cachedProgress(day);
                     final color = p == null
-                        ? Colors.white24.withOpacity(0.15) // fallback până vin datele
+                        ? Colors.white24.withOpacity(0.15)
                         : _colorForProgress(p).withOpacity(0.25);
-
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                          alignment: Alignment.center,
-                          child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                        ),
-                        const Positioned(
-                          right: 2,
-                          bottom: 2,
-                          child: Icon(Icons.lock, size: 12, color: Colors.white70),
-                        ),
-                      ],
-                    );
-                  }
-
-                  // Zile viitoare din săptămâna curentă: marcate, dar blocate
-                  if (isFutureCur) {
                     return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white24.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white30, width: 1),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('${day.day}', style: const TextStyle(color: Colors.white60)),
-                    );
-                  }
-
-                  // Zile valide (curente până la azi): culoare după progres
-                  final p = _cachedProgress(day);
-                  final color = p == null
-                      ? Colors.white24.withOpacity(0.15)
-                      : _colorForProgress(p).withOpacity(0.25);
-                  return Container(
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                  );
-                },
-                todayBuilder: (context, day, focusedDay) {
-                  if (!_isWithinAccountRange(day)) {
-                    return Container(
-                      alignment: Alignment.center,
-                      child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
-                    );
-                  }
-                  if (!_isInCurrentWorkWeek(day)) {
-                    return Container(
+                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                       alignment: Alignment.center,
                       child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
                     );
-                  }
-                  final p = _cachedProgress(day);
-                  final base = p == null ? Colors.white24 : _colorForProgress(p);
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: base.withOpacity(0.35),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.accent3, width: 1.5),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text('${day.day}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  );
-                },
-                selectedBuilder: (context, day, focusedDay) {
-                  if (!_isSelectable(day) || !_isWithinAccountRange(day)) {
+                  },
+                  todayBuilder: (context, day, focusedDay) {
+                    if (!_isWithinAccountRange(day)) {
+                      return Container(
+                        alignment: Alignment.center,
+                        child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
+                      );
+                    }
+                    if (!_isInCurrentWorkWeek(day)) {
+                      return Container(
+                        alignment: Alignment.center,
+                        child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
+                      );
+                    }
+                    final p = _cachedProgress(day);
+                    final base = p == null ? Colors.white24 : _colorForProgress(p);
                     return Container(
+                      decoration: BoxDecoration(
+                        color: base.withOpacity(0.35),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.accent3, width: 1.5),
+                      ),
                       alignment: Alignment.center,
-                      child: Text('${day.day}', style: const TextStyle(color: Colors.white54)),
+                      child: Text('${day.day}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     );
-                  }
-                  final p = _cachedProgress(day);
-                  final base = p == null ? Colors.white54 : _colorForProgress(p);
-                  return Container(
-                    decoration: BoxDecoration(color: base.withOpacity(0.6), shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: Text('${day.day}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  );
-                },
+                  },
+                  selectedBuilder: (context, day, focusedDay) {
+                    if (!_isSelectable(day) || !_isWithinAccountRange(day)) {
+                      return Container(
+                        alignment: Alignment.center,
+                        child: Text('${day.day}', style: const TextStyle(color: Colors.white54)),
+                      );
+                    }
+                    final p = _cachedProgress(day);
+                    final base = p == null ? Colors.white54 : _colorForProgress(p);
+                    return Container(
+                      decoration: BoxDecoration(color: base.withOpacity(0.6), shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: Text('${day.day}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    );
+                  },
+                ),
               ),
             ),
           ),
