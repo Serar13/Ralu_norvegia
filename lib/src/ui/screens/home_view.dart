@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/screens/calendar_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/daily_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/today_view.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../utils/streak_utils.dart';
 
@@ -23,6 +26,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   ValueNotifier<int> pointsNotifier = ValueNotifier<int>(0); // ValueNotifier to track points
   final ValueNotifier<DateTime?> _selectedDateNotifier = ValueNotifier<DateTime?>(null);
   ValueNotifier<int> streakNotifier = ValueNotifier<int>(0);
+  bool _pulse = false;
 
   Future<void> _loadUserData() async {
     try {
@@ -44,9 +48,31 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
 
   @override
   void initState() {
-    _loadUserData();
     super.initState();
+    _loadUserData();
     _tabController = TabController(length: 2, vsync: this);
+
+    // animație "pulse" mai energică și random
+    _startRandomPulse();
+  }
+
+  void _startRandomPulse() {
+    Future.delayed(const Duration(seconds: 2), () async {
+      while (mounted) {
+        // Așteaptă o perioadă random între 3 și 7 secunde
+        await Future.delayed(Duration(seconds: 3 + (4 * (0.5 + (0.5 - (DateTime.now().millisecond % 1000) / 1000))).toInt()));
+        if (!mounted) break;
+
+        // Pulse rapid, ca în desene animate
+        for (int i = 0; i < 2; i++) {
+          if (!mounted) return;
+          setState(() => _pulse = true);
+          await Future.delayed(const Duration(milliseconds: 150));
+          setState(() => _pulse = false);
+          await Future.delayed(const Duration(milliseconds: 150));
+        }
+      }
+    });
   }
 
   @override
@@ -74,26 +100,108 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6.0,  vertical: 10.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
-              decoration: BoxDecoration(
-                color: AppColors.accent3,
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.local_fire_department, color: Colors.white, size: 16.0),
-                  const SizedBox(width: 4.0),
-                  ValueListenableBuilder<int>(
-                    valueListenable: streakNotifier, // folosim streak-ul în loc de points
-                    builder: (context, streak, _) {
-                      return Text(
-                        streak.toString(),
-                        style: const TextStyle(color: Colors.white, fontSize: 16.0),
-                      );
-                    },
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => Dialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    backgroundColor: AppColors.primary.withOpacity(0.95),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_fire_department, color: AppColors.accent3, size: 60),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "🔥 Punctele tale",
+                            style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 10),
+                          ValueListenableBuilder<int>(
+                            valueListenable: pointsNotifier,
+                            builder: (context, points, _) {
+                              return Text(
+                                "Ai $points puncte acum!",
+                                style: const TextStyle(fontSize: 20, color: AppColors.accent3, fontWeight: FontWeight.w600),
+                                textAlign: TextAlign.center,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            "Continuă să faci activități zilnice pentru a câștiga mai multe puncte și a-ți crește streak-ul! 💪",
+                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton.icon(
+                            onPressed: () {
+                              launchUrl(Uri.parse("https://ralu-norvegia.com")); // link către site
+                            },
+                            icon: const Icon(Icons.link, color: AppColors.accent3),
+                            label: const Text(
+                              "Vizitează site-ul nostru",
+                              style: TextStyle(color: AppColors.accent3),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                            label: const Text("Închide"),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent3),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
+                );
+              },
+              child: AnimatedScale(
+                scale: _pulse ? 1.3 : 1.0,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.elasticOut,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent3,
+                    borderRadius: BorderRadius.circular(20.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent3.withOpacity(0.8),
+                        blurRadius: _pulse ? 16 : 6,
+                        spreadRadius: _pulse ? 3 : 0,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.local_fire_department, color: Colors.white, size: 18.0),
+                      const SizedBox(width: 4.0),
+                      ValueListenableBuilder<int>(
+                        valueListenable: streakNotifier,
+                        builder: (context, streak, _) {
+                          return Text(
+                            streak.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17.0,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.orangeAccent,
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
