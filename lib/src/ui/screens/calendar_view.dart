@@ -13,6 +13,7 @@ class CalendarWeekView extends StatefulWidget {
 }
 
 class _CalendarWeekViewState extends State<CalendarWeekView> {
+  DateTime? _loadingMonth;
   DateTime? _accountCreatedAt;
   final String uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -477,39 +478,55 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                 },
                 onPageChanged: (focusedDay) async {
                   debugPrint("📖 Page changed to ${focusedDay.month}/${focusedDay.year}");
-                  debugPrint("📖 onPageChanged START ${focusedDay.month}/${focusedDay.year}");
-                  await _loadAllProgressForMonth(focusedDay);
-                  debugPrint("📖 after _loadAllProgressForMonth");
-                  if (!mounted) return;
 
-                  final monday = _startOfWeek(focusedDay);
-                  final friday = monday.add(const Duration(days: 4));
+                  // Clamp imediat valorile pentru siguranță
+                  final first = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
+                  final last = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                  final clamped = focusedDay.isBefore(first)
+                      ? first
+                      : focusedDay.isAfter(last)
+                          ? last
+                          : focusedDay;
 
-                  final thisMonday = _startOfWeek(DateTime.now());
-                  if (_isSameDay(monday, thisMonday)) {
-                    await _ensureWeekInitializedForMonday(monday);
-                    if (!mounted) return;
-                    _attachCurrentWeekListeners();
+                  // Evită încărcările duble
+                  if (_loadingMonth != null &&
+                      _loadingMonth!.year == clamped.year &&
+                      _loadingMonth!.month == clamped.month) {
+                    debugPrint("⚠️ Skip duplicate load for ${clamped.month}/${clamped.year}");
+                    return;
                   }
 
+                  _loadingMonth = clamped;
+
+                  // Setează imediat starea pentru o tranziție coerentă
+                  if (mounted) {
+                    setState(() {
+                      _focusedDay = clamped;
+                      _monday = _startOfWeek(clamped);
+                      _friday = _monday.add(const Duration(days: 4));
+                    });
+                  }
+
+                  debugPrint("📅 Start loading month ${clamped.month}/${clamped.year}");
+                  await _loadAllProgressForMonth(clamped);
+
                   if (!mounted) return;
-                  setState(() {
-                    final safeFocus = DateTime(focusedDay.year, focusedDay.month, 15);
-                    final first = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
-                    final last = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-                    if (safeFocus.isBefore(first)) {
-                      _focusedDay = first;
-                    } else if (safeFocus.isAfter(last)) {
-                      _focusedDay = last;
-                    } else {
-                      _focusedDay = safeFocus;
-                    }
-                    _monday = monday;
-                    _friday = friday;
-                    debugPrint("📖 setState DONE focus=$_focusedDay");
-                    debugPrint("🖼️ State updated: focus=$_focusedDay mon=$_monday fri=$_friday");
-                  });
-                  debugPrint("📖 onPageChanged END ${focusedDay.month}/${focusedDay.year}");
+
+                  // Dacă între timp utilizatorul a schimbat luna, nu actualizăm
+                  if (_loadingMonth != null &&
+                      (_loadingMonth!.year != clamped.year || _loadingMonth!.month != clamped.month)) {
+                    debugPrint("⏭️ Skipping outdated load for ${clamped.month}/${clamped.year}");
+                    return;
+                  }
+
+                  final monday = _startOfWeek(clamped);
+                  if (_isSameDay(monday, _startOfWeek(DateTime.now()))) {
+                    await _ensureWeekInitializedForMonday(monday);
+                    if (mounted) _attachCurrentWeekListeners();
+                  }
+
+                  debugPrint("✅ Finished month load ${clamped.month}/${clamped.year}");
+                  _loadingMonth = null;
                 },
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
