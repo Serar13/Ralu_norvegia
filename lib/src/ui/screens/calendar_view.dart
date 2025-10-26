@@ -29,7 +29,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   late DateTime _selectedDay;
   late DateTime _monday; // începutul săptămânii curente
   late DateTime _friday; // finalul săptămânii de lucru (Luni–Vineri)
-
+  bool _isInitialLoadDone = false;
   // Cache progress per day (date-only key) to avoid async flicker
   final Map<int, double> _progressCache = {};
   final Map<int, double> _liveWeekCache = {};
@@ -59,14 +59,27 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
     _loadAccountCreatedDate().then((_) {
       _loadAllProgressFromAccountCreation();
+      _loadAccountCreatedDate().then((_) async {
+        await _loadAllProgressFromAccountCreation();
 
-      if (_isCurrentIsoWeek(_monday)) {
-        _ensureWeekInitializedForMonday(_monday).then((_) {
+        if (!mounted) return;
+        setState(() {
+          _isInitialLoadDone = true;
+        });
+
+        if (_isCurrentIsoWeek(_monday)) {
+          _ensureWeekInitializedForMonday(_monday).then((_) {
+            if (!mounted) return;
+            _attachCurrentWeekListeners();
+          });
+          await _ensureWeekInitializedForMonday(_monday);
           if (!mounted) return;
           _attachCurrentWeekListeners();
-        });
-      }
-    });
+        }
+      });
+    }
+    );
+
   }
 
   Future<void> _loadAccountCreatedDate() async {
@@ -417,7 +430,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_accountCreatedAt == null) {
+    if (_accountCreatedAt == null || !_isInitialLoadDone) {
       return const Scaffold(
         backgroundColor: AppColors.primary,
         body: Center(child: CircularProgressIndicator()),
