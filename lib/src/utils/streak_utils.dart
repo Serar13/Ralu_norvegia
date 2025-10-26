@@ -5,7 +5,9 @@ Future<int> calculateStreak(String uid) async {
   int streak = 0;
 
   DateTime current = now;
-  while (true) {
+  int safetyCounter = 0;
+  while (safetyCounter < 365) {
+    safetyCounter++;
     final weekKey = _yearWeekKey(current);
     final dayKey = _dayKey(current);
 
@@ -15,15 +17,26 @@ Future<int> calculateStreak(String uid) async {
         .collection('days').doc(dayKey);
 
     final daySnap = await dayRef.get();
-    if (!daySnap.exists) break;
+    if (!daySnap.exists) {
+      current = current.subtract(const Duration(days: 1));
+      continue;
+    }
 
     final locs = await dayRef.collection('locations').get();
-    if (locs.docs.isEmpty) break;
+    if (locs.docs.isEmpty) {
+      current = current.subtract(const Duration(days: 1));
+      continue;
+    }
+
+    bool hasAnyTask = false;
 
     bool allDone = true;
     for (final d in locs.docs) {
       final data = d.data();
       final tasks = List<String>.from(data['tasks'] ?? const []);
+      if (tasks.isNotEmpty) {
+        hasAnyTask = true;
+      }
       final doneMap = Map<String, dynamic>.from(data['done'] ?? {});
       for (int i = 0; i < tasks.length; i++) {
         if ((doneMap['$i'] ?? false) != true) {
@@ -32,6 +45,11 @@ Future<int> calculateStreak(String uid) async {
         }
       }
       if (!allDone) break;
+    }
+
+    if (!hasAnyTask) {
+      current = current.subtract(const Duration(days: 1));
+      continue;
     }
 
     if (!allDone) {
