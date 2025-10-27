@@ -154,137 +154,128 @@ class _logInViewState extends State<logInView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return Container(
-              height: MediaQuery.of(context).size.height,
-              width: double.infinity,
-              color: AppColors.primary,
+      backgroundColor: AppColors.primaryBackground,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Container(
+            padding: const EdgeInsets.all(32.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Form(
+              key: formFieldKey,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 20),
                   Container(
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3), // Shadow color
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 5), // Shadow offset
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 75,
-                      backgroundColor: AppColors.secondaryBackground, // White background
-                      child: Icon(
-                        Icons.person,
-                        size: 90,
-                        color: AppColors.accent3, // Green color for icon
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.accent3],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
+                    child: const Icon(Icons.person, color: Colors.white, size: 60),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Form(
-                      key: formFieldKey,
-                      child: Column(
-                        children: [
-                          WidgetFactory.makeInput(
-                            label: "Email",
-                            contex: context,
-                            controller: _emailController,
-                            validator: EmailValidator(),
-                          ),
-                          WidgetFactory.makeInputPassword(
-                            label: "Password",
-                            contex: context,
-                            obscureText: passToggle,
-                            passToggle: passToggle,
-                            controller: _passwordController,
-                            validator: PasswordValidator(),
-                            togglePasswordVisibility: togglePasswordVisibility,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              InkWell(
-                                child: Text(
-                                  "Forgot Password",
-                                  style: TextStyle(
-                                  decoration: TextDecoration.none,
-                                    color: AppColors.accent3,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                onTap: () {
-                                  GoRouter.of(context).push(forgotPasswordPagePath);
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "Welcome Back",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accentDark,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 25),
-                        _isLoading
-                            ? const CircularProgressIndicator()
-                            : WidgetFactory.buttonWithTextIcon(
-                          "Login",
-                          55,
-                          double.infinity,
-                          1.0,
-                          AppColors.accent3,
-                          Colors.white,
-                          2,
-                          Colors.white,
-                          null,
-                          _logIn, // Login function
-                        ),
-                        const SizedBox(height: 25),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Do not have an account?",
-                              style: TextStyle(
-                                color: AppColors.secondary,
-                                fontSize: 16,
+                  const SizedBox(height: 8),
+                  Text(
+                    "Log in to continue your clean streak",
+                    style: TextStyle(
+                      color: AppColors.primaryText2,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  WidgetFactory.makeInput(
+                    label: "Email",
+                    contex: context,
+                    controller: _emailController,
+                    validator: EmailValidator(),
+                  ),
+                  WidgetFactory.makeInputPassword(
+                    label: "Password",
+                    contex: context,
+                    obscureText: passToggle,
+                    passToggle: passToggle,
+                    controller: _passwordController,
+                    validator: PasswordValidator(),
+                    togglePasswordVisibility: togglePasswordVisibility,
+                  ),
+                  const SizedBox(height: 20),
+                  _isLoading
+                      ? const CircularProgressIndicator()
+                      : GestureDetector(
+                          onTap: _logIn,
+                          child: Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              gradient: LinearGradient(
+                                colors: [AppColors.primary, AppColors.accent3],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            InkWell(
+                            child: const Center(
                               child: Text(
-                                "Sign in",
+                                "Login",
                                 style: TextStyle(
-                                  decoration: TextDecoration.none,
-                                  color: AppColors.accent3,
-                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
                                 ),
                               ),
-                              onTap: () {
-                                GoRouter.of(context).push(singinPath);
-                                // GoRouter.of(context).go(ChooseOptionPath, extra: {'userId': userId});
-                                // GoRouter.of(context).push(RoomsSetupPath);
-                              },
-                            )
-                          ],
-                        )
-                      ],
-                    ),
+                            ),
+                          ),
+                        ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: TextStyle(color: AppColors.primaryText2),
+                      ),
+                      GestureDetector(
+                        onTap: () => GoRouter.of(context).push(singinPath),
+                        child: Text(
+                          "Sign up",
+                          style: TextStyle(
+                            color: AppColors.accent3,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );

@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+
 class AppColors {
-  // Primary color (used for the main elements, such as navigation bars, buttons, and headers)
-  static const primary = Color(0xFFADD8E6); // Light Blue (Primary, 60%)
+  /// Primary mint tone used for navigation bars, highlights and other key UI elements.
+  static const primary = Color(0xFFA8D5BA);
 
-  // Secondary color (used for backgrounds and large surfaces)
-  static const secondary = Color(0xFFFFFFFF); // White (Secondary, 30%)
+  /// Neutral surface color for cards and panels.
+  static const secondary = Color(0xFFFFFFFF);
 
-  // Accent color (used sparingly for call-to-action buttons, links, and highlights)
-  static const accent = Color(0xFFFF4500); // Orange Red (Accent, 10%)
-  static const accent2 = Color(0xFFe18178); // Orange Red (Accent, 10%)
-  static const accent3 = Color(0xFF72c0b3); // Orange Red (Accent, 10%)
+  /// Deep evergreen accent applied to important actions and icons.
+  static const accent = Color(0xFF2F4F4F);
+  static const accent2 = Color(0xFF4F6F52);
+  static const accent3 = Color(0xFF6B8F71);
 
-  // Text Colors
-  static const primaryText = secondary;
-  static const primaryText2 = Color(0xFFB0BEC5);
-  static const secondaryText = primary;
+  /// Text colors tuned for the lighter surfaces in the refreshed palette.
+  static const primaryText = Color(0xFF233029);
+  static const primaryText2 = Color(0xFF4C5C50);
+  static const secondaryText = Color(0xFFFFFFFF);
 
-  // Background Colors
-  static const primaryBackground = primary; // Using secondary color (white) as the primary background
-  static const secondaryBackground = secondary; // Light Steel Blue for less prominent background elements
+  /// Background tones inspired by the vaskmedmeg.no aesthetic.
+  static const primaryBackground = Color(0xFFF5F3ED);
+  static const secondaryBackground = secondary;
 
   // Additional Accents and Warnings
-  static const accentDark = Color(0xFF23767B); // Teal for darker accents (optional)
-  static const warning = Color(0xFFCE522C); // Strong warning color
+  static const accentDark = Color(0xFF1F3A32);
+  static const warning = Color(0xFFCE522C);
 }

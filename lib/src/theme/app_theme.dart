@@ -6,28 +6,43 @@ import 'package:ralu_norvegia/src/theme/app_colors.dart';
 ThemeData getApplicationTheme() {
   return ThemeData(
     scaffoldBackgroundColor: AppColors.primaryBackground,
-    primarySwatch: Colors.blue,
+    primaryColor: AppColors.primary,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      primary: AppColors.primary,
+      secondary: AppColors.accent3,
+      background: AppColors.primaryBackground,
+      surface: AppColors.secondaryBackground,
+      onPrimary: AppColors.secondaryText,
+      onSecondary: AppColors.secondaryText,
+      onBackground: AppColors.primaryText,
+      onSurface: AppColors.primaryText,
+    ),
     fontFamily: 'Kanit',
 
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.secondaryBackground,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.primaryText,
+      selectedItemColor: AppColors.accent,
+      unselectedItemColor: AppColors.primaryText2,
       type: BottomNavigationBarType.fixed,
     ),
 
-    // app bar theme
     appBarTheme: const AppBarTheme(
-      iconTheme: IconThemeData(color: Colors.white),
-      color: Colors.deepPurpleAccent,
-      foregroundColor: Colors.black,
+      backgroundColor: AppColors.primary,
+      foregroundColor: AppColors.accent,
+      iconTheme: IconThemeData(color: AppColors.accent),
+      titleTextStyle: TextStyle(
+        fontFamily: 'Kanit',
+        fontWeight: FontWeight.w600,
+        fontSize: 20,
+        color: AppColors.accent,
+      ),
       systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF0f1528),
-        statusBarIconBrightness: Brightness.light,
+        statusBarColor: AppColors.primary,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
     ),
-
 
     textTheme: TextTheme(
       titleMedium: _getTextStyle(
