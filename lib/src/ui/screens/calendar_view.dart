@@ -189,6 +189,9 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   bool _isSameCalendarDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
+  bool _isWeekend(DateTime d) =>
+      d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+
   bool _isPastWeek(DateTime d) {
     final todayMonday = _startOfWeek(DateTime.now());
     final dd = DateTime(d.year, d.month, d.day);
@@ -200,6 +203,8 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
     final dd = DateTime(d.year, d.month, d.day);
     return dd.isAfter(todayFriday);
   }
+
+
 
   bool _isFutureInCurrentWeek(DateTime d) {
     final dd = DateTime(d.year, d.month, d.day);
@@ -565,6 +570,33 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                       );
                     }
 
+                    if (_isWeekend(day)) {
+                      final isPastWeekend = day.isBefore(_startOfWeek(DateTime.now()));
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white24.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                              border: isPastWeekend
+                                  ? null
+                                  : Border.all(color: Colors.white30, width: 1),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text('${day.day}',
+                                style: const TextStyle(color: Colors.white54)),
+                          ),
+                          if (isPastWeekend)
+                            const Positioned(
+                              right: 2,
+                              bottom: 2,
+                              child: Icon(Icons.lock, size: 12, color: Colors.white70),
+                            ),
+                        ],
+                      );
+                    }
+
                     // Săptămâni trecute: culoare după progres + lacăt
                     if (isPastW) {
                       final p = _cachedProgress(day);
@@ -614,6 +646,18 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                     );
                   },
                   todayBuilder: (context, day, focusedDay) {
+                    if (_isWeekend(day)) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white24.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.accent3, width: 1.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text('${day.day}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      );
+                    }
                     if (!_isWithinAccountRange(day)) {
                       return Container(
                         alignment: Alignment.center,
@@ -640,6 +684,17 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
                     );
                   },
                   selectedBuilder: (context, day, focusedDay) {
+                    if (_isWeekend(day)) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white54.withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text('${day.day}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      );
+                    }
                     if (!_isSelectable(day) || !_isWithinAccountRange(day)) {
                       return Container(
                         alignment: Alignment.center,
