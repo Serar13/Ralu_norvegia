@@ -23,6 +23,12 @@ class AppColors {
   static const primaryBackground = Color(0xFFF5F3ED);
   static const secondaryBackground = secondary;
 
+  /// Background used across screens (main scaffold background).
+  static const background = primaryBackground;
+
+  /// Surface color used for cards and containers.
+  static const surface = secondaryBackground;
+
   // Additional Accents and Warnings
   static const accentDark = Color(0xFF1F3A32);
   static const warning = Color(0xFFCE522C);

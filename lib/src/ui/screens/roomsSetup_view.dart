@@ -166,17 +166,23 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
+        title: Text(
+          'Velg rom og navn',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ).copyWith(color: AppColors.accent3),
+        ),
         foregroundColor: AppColors.accent3,
-        title: const Text('Velg rom og navn'),
       ),
       body: Column(
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -185,33 +191,40 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
                 final type = _roomTypes[i];
                 final count = _counts[type]!;
                 final controls = _controllers[type] ?? const [];
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+                // AnimatedContainer pentru efect la modificare count
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.secondaryBackground,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.accent3.withOpacity(0.15)),
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header: nume tip + selector count
                         Row(
                           children: [
                             Expanded(
                               child: Text(
                                 type,
                                 style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryText,
                                 ),
                               ),
                             ),
-                            _SmallSquareBtn(
+                            _CircleIconBtn(
                               icon: Icons.remove,
                               enabled: type == 'Kjøkken' ? count > 1 : count > 0,
                               onTap: () => _changeCount(type, -1),
@@ -221,39 +234,42 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
                               child: Text(
                                 '$count',
                                 style: TextStyle(
-                                  color: count >= 4 ? Colors.black54 : Colors.black,
+                                  color: count >= 4
+                                      ? AppColors.primaryText.withOpacity(0.5)
+                                      : AppColors.primaryText,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
                                 ),
                               ),
                             ),
-                            _SmallSquareBtn(
+                            _CircleIconBtn(
                               icon: Icons.add,
-                              // lăsăm butonul mereu activ ca să putem arăta SnackBar-ul când e la plafon
                               enabled: true,
                               onTap: () => _changeCount(type, 1),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-
-                        // Câmpuri de denumire (unul pentru fiecare instanță)
+                        const SizedBox(height: 14),
                         if (count > 0)
                           ...List.generate(count, (idx) {
                             final controller = controls[idx];
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
+                              padding: const EdgeInsets.only(bottom: 10.0),
                               child: TextField(
                                 controller: controller,
                                 decoration: InputDecoration(
                                   labelText: 'Nume ${type.toLowerCase()} ${idx + 1}',
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: AppColors.secondaryBackground,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 12),
+                                      vertical: 14, horizontal: 16),
+                                  labelStyle: TextStyle(
+                                    color: AppColors.primaryText.withOpacity(0.6),
+                                  ),
                                 ),
                               ),
                             );
@@ -271,37 +287,52 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: SizedBox(
                 width: double.infinity,
-                height: 54,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent3,
+                    elevation: 4,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(20),
                     ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () {
                     if (!_validate()) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Verifică: Kjøkken minim 1 și numele să nu fie goale.'),
+                        SnackBar(
+                          backgroundColor: AppColors.accent3,
+                          content: const Center(
+                            child: Text(
+                              'Verifică: Kjøkken minim 1 și numele să nu fie goale.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          showCloseIcon: true,
                         ),
                       );
                       return;
                     }
                     final result = _buildResult();
-
-                    // Construiește planul default și mergi la ReviewChose (basic)
                     final plan = _buildDefaultWeeks(result);
                     context.go(ReviewChosePath, extra: {
                       'optionType': 'basic',
                       'planWeeks': plan['planWeeks'],
                       'weekHeaders': plan['weekHeaders'],
-                      // 'userId': user?.uid, // adaugă dacă vrei să treci uid
                     });
                   },
                   child: const Text(
                     'Fortsett',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -313,8 +344,9 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
   }
 }
 
-class _SmallSquareBtn extends StatelessWidget {
-  const _SmallSquareBtn({
+
+class _CircleIconBtn extends StatelessWidget {
+  const _CircleIconBtn({
     required this.icon,
     required this.enabled,
     required this.onTap,
@@ -326,24 +358,20 @@ class _SmallSquareBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 34,
-        height: 34,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: enabled ? Colors.white : Colors.white.withOpacity(0.4),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: enabled ? Colors.black12 : Colors.black12.withOpacity(0.3),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: CircleAvatar(
+          radius: 18,
+          backgroundColor: enabled
+              ? AppColors.accent3
+              : AppColors.accent3.withOpacity(0.3),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: 20,
           ),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: enabled ? Colors.black87 : Colors.black38,
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ralu_norvegia/src/app/app_router.dart';
 import '../../service/firestore_bootstrap.dart';
+import 'package:ralu_norvegia/src/theme/app_colors.dart';
 
 class ReviewChose extends StatefulWidget {
   final String optionType; // legacy, nefolosit
@@ -90,7 +91,7 @@ class _ReviewChoseState extends State<ReviewChose> {
 
     return Stack(
       children: [
-        Scaffold(
+        Scaffold(backgroundColor: AppColors.primaryBackground,
           appBar: AppBar(
             title: const Text("Review Selecții"),
             // leading: IconButton(
@@ -106,112 +107,234 @@ class _ReviewChoseState extends State<ReviewChose> {
             // ),
           ),
           body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Text(
-                //   "Tip Configurație: ${optType == "basic" ? "Basic" : "Custom"}",
-                //   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                // ),
-                const SizedBox(height: 16),
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header text in the refreshed style
+        const Text(
+          "Revizuiește planul săptămânal",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primaryText,
+          ),
+        ),
+        const SizedBox(height: 12),
 
-                Expanded(
-                  child: ListView(
-                    children: [
-                      for (final week in planWeeks.keys) ...[
-                        // Header de săptămână (linie simplă)
-                      ListTile(
-                        title: Text(
-                          week,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        subtitle: (weekHeaders[week] != null && weekHeaders[week]!.isNotEmpty)
-                            ? Text('Suprafață: ${weekHeaders[week]}')
-                            : null,
+        // Content list
+        Expanded(
+          child: ListView(
+            children: [
+              for (final week in planWeeks.keys) ...[
+                // Card for each week
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryBackground,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                        // Zilele în ordine fixă
-                        for (final day in const ['Luni','Marti','Miercuri','Joi','Vineri'])
-                          if (planWeeks[week]!.containsKey(day))
-                            ListTile(
-                              leading: const Icon(Icons.calendar_today),
-                              title: Text(day),
-                              subtitle: Text(
-                                planWeeks[week]![day]!.isEmpty
-                                    ? 'Fără locații'
-                                    : planWeeks[week]![day]!.join(', '),
-                              ),
-                            ),
-                        const Divider(height: 24),
-                      ],
                     ],
                   ),
-                ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Week header row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                week,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                            ),
+                            if (weekHeaders[week] != null && weekHeaders[week]!.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.25),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.crop_square, size: 14, color: AppColors.accent3),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Suprafață: ${weekHeaders[week]}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.primaryText2,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
 
-                ElevatedButton(
-                  onPressed: () async {
-                    setState(() {
-                      _isLoading = true;
-                    });
-                    try {
-                      final uid = FirebaseAuth.instance.currentUser?.uid;
-                      if (uid == null) return;
+                        const SizedBox(height: 10),
+                        const Divider(height: 1, color: Color(0x11000000)),
+                        const SizedBox(height: 8),
 
-                      await FirestoreBootstrap.saveWeeklyPlan(
-                        uid: uid,
-                        planWeeks: planWeeks,
-                        weekHeaders: weekHeaders,
-                        defaultTasksPerDay: defaultTasks,
-                      );
-
-                      await FirestoreBootstrap.resetCompletedTasks(
-                        uid: uid,
-                        planWeeks: planWeeks,
-                      );
-                      await FirestoreBootstrap.initializeUserProgress(
-                        uid: uid,
-                        planWeeks: planWeeks,
-                        weekHeaders: weekHeaders,
-                      );
-
-// DO NOT sign out here while email verification flow is disabled
-// final currentUser = FirebaseAuth.instance.currentUser;
-// if (currentUser == null || !currentUser.emailVerified) {
-//   await FirebaseAuth.instance.signOut();
-//   if (mounted) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       const SnackBar(content: Text('Te rugăm să îți verifici emailul pentru a continua.')),
-//     );
-//     context.go(loginPath);
-//   }
-//   return;
-// }
-
-                      // dacă e verificat → mergem la home
-                      if (mounted) {
-                        context.go(homePath);
-                      }
-                    } finally {
-                      if (mounted) {
-                        setState(() {
-                          _isLoading = false;
-                        });
-                      }
-                    }
-                  },
-                  child: const Text("Confirmă și Creează"),
+                        // Days list within the week card
+                        for (final day in const ['Luni','Marti','Miercuri','Joi','Vineri'])
+                          if (planWeeks[week]!.containsKey(day))
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBackground,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 2.0),
+                                    child: Icon(Icons.calendar_today, size: 18, color: AppColors.accent3),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          day,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primaryText,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          planWeeks[week]![day]!.isEmpty
+                                              ? 'Fără locații'
+                                              : planWeeks[week]![day]!.join(', '),
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.primaryText2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Confirm button full-width, styled
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accent3,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 2,
+            ),
+            onPressed: () async {
+              setState(() { _isLoading = true; });
+              try {
+                final uid = FirebaseAuth.instance.currentUser?.uid;
+                if (uid == null) return;
+
+                await FirestoreBootstrap.saveWeeklyPlan(
+                  uid: uid,
+                  planWeeks: planWeeks,
+                  weekHeaders: weekHeaders,
+                  defaultTasksPerDay: defaultTasks,
+                );
+
+                await FirestoreBootstrap.resetCompletedTasks(
+                  uid: uid,
+                  planWeeks: planWeeks,
+                );
+                await FirestoreBootstrap.initializeUserProgress(
+                  uid: uid,
+                  planWeeks: planWeeks,
+                  weekHeaders: weekHeaders,
+                );
+
+                if (mounted) {
+                  context.go(homePath);
+                }
+              } finally {
+                if (mounted) {
+                  setState(() { _isLoading = false; });
+                }
+              }
+            },
+            child: const Text(
+              "Confirmă și creează",
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
           ),
         ),
+      ],
+    ),
+  ),
+        ),
         if (_isLoading)
           Container(
-            color: Colors.black.withOpacity(0.5),
-            child: const Center(
-              child: CircularProgressIndicator(),
+    color: Colors.black.withOpacity(0.35),
+    child: Center(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.secondaryBackground,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
-          ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 12),
+            Text(
+              'Se salvează planul...',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  )
       ],
     );
   }

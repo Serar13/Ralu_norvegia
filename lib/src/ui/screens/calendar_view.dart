@@ -437,299 +437,396 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   Widget build(BuildContext context) {
     if (_accountCreatedAt == null || !_isInitialLoadDone) {
       return const Scaffold(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.primaryBackground,
         body: Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        title: const Text('Calendar (săptămâna curentă)'),
+        title: const Text(
+          'Calendar',
+          style: TextStyle(
+            color: AppColors.accentDark,
+            fontFamily: 'Kanit',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
+        elevation: 0,
         backgroundColor: AppColors.primary,
       ),
-      backgroundColor: AppColors.primary,
-      body: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: TableCalendar(
-                firstDay: _accountCreatedAt!,
-                lastDay: DateTime.now(),
-                focusedDay: _focusedDay,
-                calendarFormat: CalendarFormat.month,
-                startingDayOfWeek: StartingDayOfWeek.monday,
-                selectedDayPredicate: (day) => _isSameDay(day, _selectedDay),
-                availableGestures: AvailableGestures.horizontalSwipe,
-                headerStyle: const HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                calendarStyle: CalendarStyle(
-                  isTodayHighlighted: true,
-                  outsideDaysVisible: false,
-                  todayDecoration: BoxDecoration(
-                    color: AppColors.accent3.withOpacity(0.25),
-                    shape: BoxShape.circle,
+                padding: const EdgeInsets.all(12),
+                child: TableCalendar(
+                  firstDay: _accountCreatedAt!,
+                  lastDay: DateTime.now(),
+                  focusedDay: _focusedDay,
+                  calendarFormat: CalendarFormat.month,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  selectedDayPredicate: (day) => _isSameDay(day, _selectedDay),
+                  availableGestures: AvailableGestures.horizontalSwipe,
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    titleTextStyle: TextStyle(
+                      color: AppColors.accentDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Kanit',
+                    ),
+                    leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.accent3),
+                    rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.accent3),
                   ),
-                  selectedDecoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+                  calendarStyle: CalendarStyle(
+                    isTodayHighlighted: true,
+                    outsideDaysVisible: false,
+                    todayDecoration: BoxDecoration(
+                      color: AppColors.accent3.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.accent3, width: 1.5),
+                    ),
+                    selectedDecoration: BoxDecoration(
+                      color: AppColors.accent3,
+                      shape: BoxShape.circle,
+                    ),
+                    selectedTextStyle: const TextStyle(color: Colors.white),
+                    weekendTextStyle: const TextStyle(
+                      color: AppColors.primaryText2,
+                      fontFamily: 'Kanit',
+                    ),
+                    defaultTextStyle: const TextStyle(
+                      color: AppColors.primaryText,
+                      fontFamily: 'Kanit',
+                    ),
+                    outsideTextStyle: const TextStyle(
+                      color: AppColors.primaryText2,
+                      fontFamily: 'Kanit',
+                    ),
                   ),
-                  selectedTextStyle: const TextStyle(color: Colors.black),
-                  weekendTextStyle: const TextStyle(color: Colors.white70),
-                  defaultTextStyle: const TextStyle(color: Colors.white),
-                  outsideTextStyle: const TextStyle(color: Colors.white38),
-                ),
-                onDaySelected: (selectedDay, focusedDay) async {
-                  if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Nu poți selecta zile în afara săptămânii curente, în avans sau înainte de crearea contului.')),
-                    );
-                    return;
-                  }
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                  Navigator.of(context).pop<DateTime>(selectedDay);
-                },
-                onPageChanged: (focusedDay) async {
-                  debugPrint("📖 Page changed to ${focusedDay.month}/${focusedDay.year}");
-
-                  // Clamp imediat valorile pentru siguranță
-                  final first = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
-                  final last = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-                  final clamped = focusedDay.isBefore(first)
-                      ? first
-                      : focusedDay.isAfter(last)
-                          ? last
-                          : focusedDay;
-
-                  // Evită încărcările duble
-                  if (_loadingMonth != null &&
-                      _loadingMonth!.year == clamped.year &&
-                      _loadingMonth!.month == clamped.month) {
-                    debugPrint("⚠️ Skip duplicate load for ${clamped.month}/${clamped.year}");
-                    return;
-                  }
-
-                  _loadingMonth = clamped;
-
-                  // Setează imediat starea pentru o tranziție coerentă
-                  if (mounted) {
+                  onDaySelected: (selectedDay, focusedDay) async {
+                    if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Zi nepermisă.')),
+                      );
+                      return;
+                    }
                     setState(() {
-                      _focusedDay = clamped;
-                      _monday = _startOfWeek(clamped);
-                      _friday = _monday.add(const Duration(days: 4));
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
                     });
-                  }
-
-                  debugPrint("📅 Start loading month ${clamped.month}/${clamped.year}");
-                  await _loadAllProgressForMonth(clamped);
-
-                  if (!mounted) return;
-
-                  // Dacă între timp utilizatorul a schimbat luna, nu actualizăm
-                  if (_loadingMonth != null &&
-                      (_loadingMonth!.year != clamped.year || _loadingMonth!.month != clamped.month)) {
-                    debugPrint("⏭️ Skipping outdated load for ${clamped.month}/${clamped.year}");
-                    return;
-                  }
-
-                  final monday = _startOfWeek(clamped);
-                  if (_isSameDay(monday, _startOfWeek(DateTime.now()))) {
-                    await _ensureWeekInitializedForMonday(monday);
-                    if (mounted) _attachCurrentWeekListeners();
-                  }
-
-                  debugPrint("✅ Finished month load ${clamped.month}/${clamped.year}");
-                  _loadingMonth = null;
-                },
-                calendarBuilders: CalendarBuilders(
-                  defaultBuilder: (context, day, focusedDay) {
-                    final isPastW = _isPastWeek(day);
-                    final isFutureW = _isFutureWeek(day);
-                    final isFutureCur = _isFutureInCurrentWeek(day);
-
-                    // Zile în afara intervalului contului: estompat complet
-                    if (!_isWithinAccountRange(day)) {
-                      return Container(
-                        decoration: const BoxDecoration(shape: BoxShape.circle),
-                        alignment: Alignment.center,
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
-                      );
-                    }
-
-                    // Săptămâni viitoare: estompat
-                    if (isFutureW) {
-                      return Container(
-                        decoration: const BoxDecoration(shape: BoxShape.circle),
-                        alignment: Alignment.center,
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white38)),
-                      );
-                    }
-
-                    if (_isWeekend(day)) {
-                      final isPastWeekend = day.isBefore(_startOfWeek(DateTime.now()));
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white24.withOpacity(0.15),
-                              shape: BoxShape.circle,
-                              border: isPastWeekend
-                                  ? null
-                                  : Border.all(color: Colors.white30, width: 1),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text('${day.day}',
-                                style: const TextStyle(color: Colors.white54)),
-                          ),
-                          if (isPastWeekend)
-                            const Positioned(
-                              right: 2,
-                              bottom: 2,
-                              child: Icon(Icons.lock, size: 12, color: Colors.white70),
-                            ),
-                        ],
-                      );
-                    }
-
-                    // Săptămâni trecute: culoare după progres + lacăt
-                    if (isPastW) {
-                      final p = _cachedProgress(day);
-                      final color = p == null
-                          ? Colors.white24.withOpacity(0.15) // fallback până vin datele
-                          : _colorForProgress(p).withOpacity(0.25);
-
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                            alignment: Alignment.center,
-                            child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                          ),
-                          const Positioned(
-                            right: 2,
-                            bottom: 2,
-                            child: Icon(Icons.lock, size: 12, color: Colors.white70),
-                          ),
-                        ],
-                      );
-                    }
-
-                    // Zile viitoare din săptămâna curentă: marcate, dar blocate
-                    if (isFutureCur) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white24.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white30, width: 1),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white60)),
-                      );
-                    }
-
-                    // Zile valide (curente până la azi): culoare după progres
-                    final p = _cachedProgress(day);
-                    final color = p == null
-                        ? Colors.white24.withOpacity(0.15)
-                        : _colorForProgress(p).withOpacity(0.25);
-                    return Container(
-                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                    );
+                    Navigator.of(context).pop<DateTime>(selectedDay);
                   },
-                  todayBuilder: (context, day, focusedDay) {
-                    if (_isWeekend(day)) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white24.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.accent3, width: 1.5),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text('${day.day}',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      );
-                    }
-                    if (!_isWithinAccountRange(day)) {
-                      return Container(
-                        alignment: Alignment.center,
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white12)),
-                      );
-                    }
-                    if (!_isInCurrentWorkWeek(day)) {
-                      return Container(
-                        alignment: Alignment.center,
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                      );
-                    }
-                    final p = _cachedProgress(day);
-                    final base = p == null ? Colors.white24 : _colorForProgress(p);
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: base.withOpacity(0.35),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.accent3, width: 1.5),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('${day.day}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    );
+                  onPageChanged: (focusedDay) async {
+                    await _handlePageChange(focusedDay);
                   },
-                  selectedBuilder: (context, day, focusedDay) {
-                    if (_isWeekend(day)) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white54.withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text('${day.day}',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      );
-                    }
-                    if (!_isSelectable(day) || !_isWithinAccountRange(day)) {
-                      return Container(
-                        alignment: Alignment.center,
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white54)),
-                      );
-                    }
-                    final p = _cachedProgress(day);
-                    final base = p == null ? Colors.white54 : _colorForProgress(p);
-                    return Container(
-                      decoration: BoxDecoration(color: base.withOpacity(0.6), shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: Text('${day.day}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    );
-                  },
+                  calendarBuilders: calendarBuilders(),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 _Legend(color: Colors.red, label: 'Nefăcut'),
-                SizedBox(width: 12),
+                SizedBox(width: 16),
                 _Legend(color: Colors.orange, label: 'În progres'),
-                SizedBox(width: 12),
+                SizedBox(width: 16),
                 _Legend(color: Colors.green, label: 'Complet'),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Future<void> _handlePageChange(DateTime focusedDay) async {
+    debugPrint("📖 Page changed to ${focusedDay.month}/${focusedDay.year}");
+    final first = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
+    final last = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final clamped = focusedDay.isBefore(first)
+        ? first
+        : focusedDay.isAfter(last)
+            ? last
+            : focusedDay;
+    if (_loadingMonth != null &&
+        _loadingMonth!.year == clamped.year &&
+        _loadingMonth!.month == clamped.month) {
+      debugPrint("⚠️ Skip duplicate load for ${clamped.month}/${clamped.year}");
+      return;
+    }
+    _loadingMonth = clamped;
+    if (mounted) {
+      setState(() {
+        _focusedDay = clamped;
+        _monday = _startOfWeek(clamped);
+        _friday = _monday.add(const Duration(days: 4));
+      });
+    }
+    debugPrint("📅 Start loading month ${clamped.month}/${clamped.year}");
+    await _loadAllProgressForMonth(clamped);
+    if (!mounted) return;
+    if (_loadingMonth != null &&
+        (_loadingMonth!.year != clamped.year || _loadingMonth!.month != clamped.month)) {
+      debugPrint("⏭️ Skipping outdated load for ${clamped.month}/${clamped.year}");
+      return;
+    }
+    final monday = _startOfWeek(clamped);
+    if (_isSameDay(monday, _startOfWeek(DateTime.now()))) {
+      await _ensureWeekInitializedForMonday(monday);
+      if (mounted) _attachCurrentWeekListeners();
+    }
+    debugPrint("✅ Finished month load ${clamped.month}/${clamped.year}");
+    _loadingMonth = null;
+  }
+
+  CalendarBuilders calendarBuilders() {
+    return CalendarBuilders(
+      defaultBuilder: (context, day, focusedDay) {
+        final isPastW = _isPastWeek(day);
+        final isFutureW = _isFutureWeek(day);
+        final isFutureCur = _isFutureInCurrentWeek(day);
+        if (!_isWithinAccountRange(day)) {
+          return Container(
+            decoration: const BoxDecoration(shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText2,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        if (isFutureW) {
+          return Container(
+            decoration: const BoxDecoration(shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText2,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        if (_isWeekend(day)) {
+          final isPastWeekend = day.isBefore(_startOfWeek(DateTime.now()));
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primaryText2.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                  border: isPastWeekend
+                      ? null
+                      : Border.all(color: AppColors.primaryText2.withOpacity(0.12), width: 1),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${day.day}',
+                  style: const TextStyle(
+                    color: AppColors.primaryText2,
+                    fontFamily: 'Kanit',
+                  ),
+                ),
+              ),
+              if (isPastWeekend)
+                const Positioned(
+                  right: 2,
+                  bottom: 2,
+                  child: Icon(Icons.lock, size: 12, color: AppColors.primaryText2),
+                ),
+            ],
+          );
+        }
+        if (isPastW) {
+          final p = _cachedProgress(day);
+          final color = p == null
+              ? AppColors.primaryText2.withOpacity(0.08)
+              : _colorForProgress(p).withOpacity(0.22);
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Text(
+                  '${day.day}',
+                  style: const TextStyle(
+                    color: AppColors.primaryText,
+                    fontFamily: 'Kanit',
+                  ),
+                ),
+              ),
+              const Positioned(
+                right: 2,
+                bottom: 2,
+                child: Icon(Icons.lock, size: 12, color: AppColors.primaryText2),
+              ),
+            ],
+          );
+        }
+        if (isFutureCur) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.primaryText2.withOpacity(0.08),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primaryText2.withOpacity(0.12), width: 1),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText2,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        final p = _cachedProgress(day);
+        final color = p == null
+            ? AppColors.primaryText2.withOpacity(0.08)
+            : _colorForProgress(p).withOpacity(0.22);
+        return Container(
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: Text(
+            '${day.day}',
+            style: const TextStyle(
+              color: AppColors.primaryText,
+              fontFamily: 'Kanit',
+            ),
+          ),
+        );
+      },
+      todayBuilder: (context, day, focusedDay) {
+        if (_isWeekend(day)) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.accent3.withOpacity(0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.accent3, width: 1.5),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        if (!_isWithinAccountRange(day)) {
+          return Container(
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText2,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        if (!_isInCurrentWorkWeek(day)) {
+          return Container(
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        final p = _cachedProgress(day);
+        final base = p == null ? AppColors.primaryText2 : _colorForProgress(p);
+        return Container(
+          decoration: BoxDecoration(
+            color: base.withOpacity(0.25),
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.accent3, width: 1.5),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '${day.day}',
+            style: const TextStyle(
+              color: AppColors.primaryText,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Kanit',
+            ),
+          ),
+        );
+      },
+      selectedBuilder: (context, day, focusedDay) {
+        if (_isWeekend(day)) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.accent3.withOpacity(0.6),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        if (!_isSelectable(day) || !_isWithinAccountRange(day)) {
+          return Container(
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: const TextStyle(
+                color: AppColors.primaryText2,
+                fontFamily: 'Kanit',
+              ),
+            ),
+          );
+        }
+        final p = _cachedProgress(day);
+        final base = p == null ? AppColors.accent3 : _colorForProgress(p);
+        return Container(
+          decoration: BoxDecoration(color: base.withOpacity(0.9), shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: Text(
+            '${day.day}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Kanit',
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -742,9 +839,23 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(color: Colors.white70)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.primaryText,
+            fontFamily: 'Kanit',
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
