@@ -143,7 +143,13 @@ class _userProfileViewState extends State<userProfileView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("User Profile", style: TextStyle(color: AppColors.accent3)),
+        title: const Text(
+          "User Profile",
+          style: TextStyle(
+            color: AppColors.accent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: AppColors.secondary,
         leading: IconButton(
@@ -154,133 +160,183 @@ class _userProfileViewState extends State<userProfileView> {
         ),
       ),
       body: Container(
-        color: AppColors.primary,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryBackground],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 60.0, bottom: 8.0),
-          child: Container(
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBackground,
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: isLoading
-                  ? Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.accent3,
-                ),
-              )
-                  : Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 75,
-                          backgroundColor: AppColors.secondaryBackground,
-                          child: Icon(
-                            Icons.person,
-                            size: 90,
-                            color: AppColors.accent3,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      Row(
-                        children: [
-                          const Text('First name:'),
-                          const SizedBox(width: 5),
-                          Text(userData?['first name'] ?? "Not available"),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          const Text('Last name:'),
-                          const SizedBox(width: 5),
-                          Text(userData?['last name'] ?? "Not available"),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          const Text('Email:'),
-                          const SizedBox(width: 5),
-                          Text(user.email ?? ""),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          const Text('Phone number:'),
-                          const SizedBox(width: 5),
-                          Text(userData?['phone number']?.toString() ?? "Not available"),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      WidgetFactory.buttonWithTextIcon(
-                        "Edit Profile",
-                        55,
-                        MediaQuery.of(context).size.width,
-                        1,
-                        AppColors.accent3,
-                        AppColors.secondary,
-                        2,
-                        AppColors.secondary,
-                        null,
-                        _editProfile, // Navigate to edit profile screen
-                      ),
-                      const SizedBox(height: 10),
-                      WidgetFactory.buttonWithTextIcon(
-                        "Delete Account",
-                        55,
-                        MediaQuery.of(context).size.width,
-                        1,
-                        AppColors.accent3,
-                        AppColors.secondary,
-                        2,
-                        AppColors.secondary,
-                        null,
-                        _reauthenticateAndDelete, // Re-authenticate and delete account
-                      ),
-                      const SizedBox(height: 10),
-                      WidgetFactory.buttonWithTextIcon(
-                        "LogOut",
-                        55,
-                        MediaQuery.of(context).size.width,
-                        1,
-                        AppColors.accent3,
-                        AppColors.secondary,
-                        2,
-                        AppColors.secondary,
-                        null,
-                        _logout,
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
                 ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40),
+                child: isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.accent3,
+                        ),
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 75,
+                              backgroundColor: AppColors.secondaryBackground,
+                              child: Icon(
+                                Icons.person,
+                                size: 90,
+                                color: AppColors.accent3,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'First name: ',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accent3,
+                                    ),
+                                  ),
+                                  Text(
+                                    userData?['first name'] ?? "Not available",
+                                    style: const TextStyle(color: AppColors.primaryText),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 15),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Last name: ',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accent3,
+                                    ),
+                                  ),
+                                  Text(
+                                    userData?['last name'] ?? "Not available",
+                                    style: const TextStyle(color: AppColors.primaryText),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 15),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Email: ',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accent3,
+                                    ),
+                                  ),
+                                  Text(
+                                    user.email ?? "",
+                                    style: const TextStyle(color: AppColors.primaryText),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 15),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Phone number: ',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accent3,
+                                    ),
+                                  ),
+                                  Text(
+                                    userData?['phone number']?.toString() ?? "Not available",
+                                    style: const TextStyle(color: AppColors.primaryText),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 40),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              WidgetFactory.buttonWithTextIcon(
+                                "Edit Profile",
+                                55,
+                                MediaQuery.of(context).size.width,
+                                1,
+                                AppColors.accent3,
+                                AppColors.secondaryText,
+                                2,
+                                AppColors.secondaryText,
+                                null,
+                                _editProfile,
+                              ),
+                              const SizedBox(height: 15),
+                              WidgetFactory.buttonWithTextIcon(
+                                "Delete Account",
+                                55,
+                                MediaQuery.of(context).size.width,
+                                1,
+                                AppColors.accent3,
+                                AppColors.secondaryText,
+                                2,
+                                AppColors.secondaryText,
+                                null,
+                                _reauthenticateAndDelete,
+                              ),
+                              const SizedBox(height: 15),
+                              WidgetFactory.buttonWithTextIcon(
+                                "LogOut",
+                                55,
+                                MediaQuery.of(context).size.width,
+                                1,
+                                AppColors.accent3,
+                                AppColors.secondaryText,
+                                2,
+                                AppColors.secondaryText,
+                                null,
+                                _logout,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
               ),
             ),
           ),

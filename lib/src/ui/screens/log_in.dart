@@ -223,6 +223,20 @@ class _logInViewState extends State<logInView> {
                     validator: PasswordValidator(),
                     togglePasswordVisibility: togglePasswordVisibility,
                   ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () => GoRouter.of(context).push(forgotPasswordPagePath),
+                      child: Text(
+                        "Forgot password?",
+                        style: TextStyle(
+                          color: AppColors.accent3,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 20),
                   _isLoading
                       ? const CircularProgressIndicator()

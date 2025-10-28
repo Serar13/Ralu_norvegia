@@ -337,105 +337,242 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-          body: Container(
-            color: AppColors.primary,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primary,
+              AppColors.primaryBackground,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Header
+                // Header modern pastel-mint style
                 Container(
-                  color: AppColors.accent3,
-                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Current Week: ${_ukeFor(DateTime.now())}",
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text("Day: $currentDay",
-                          style: const TextStyle(color: Colors.white, fontSize: 16)),
-                      const SizedBox(height: 4),
-                      if (allLocations.length == 1)
-                        Text("Location: ${allLocations.first}",
-                            style: const TextStyle(color: Colors.white, fontSize: 16)),
-                      if (surfaceForToday != null)
-                        Text("Suprafață: $surfaceForToday",
-                            style: const TextStyle(color: Colors.white, fontSize: 16)),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.calendar_today, color: AppColors.accent3, size: 22),
+                          const SizedBox(width: 10),
+                          Text(
+                            "Current Week",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.accent3,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _ukeFor(DateTime.now()),
+                        style: TextStyle(
+                          color: AppColors.primaryText2,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Day: $currentDay",
+                        style: TextStyle(
+                          color: AppColors.primaryText2,
+                          fontSize: 15,
+                        ),
+                      ),
+                      if (allLocations.length == 1) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          "Location: ${allLocations.first}",
+                          style: TextStyle(
+                            color: AppColors.primaryText2,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                      if (surfaceForToday != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          "Suprafață: $surfaceForToday",
+                          style: TextStyle(
+                            color: AppColors.primaryText2,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-
                 // Tasks
                 Expanded(
                   child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : (_tasksPerLocation.isEmpty || (_tasksPerLocation.every((l) => l.isEmpty)))
-                      ? const Center(
-                    child: Text("No tasks for today.",
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
-                  )
-                      : ListView(
-                    padding: const EdgeInsets.all(16.0),
-                    children: [
-                      if (allLocations.length > 1)
-                        ...List.generate(allLocations.length, (locIdx) {
-                          final tasks = _tasksPerLocation[locIdx];
-                          return ExpansionTile(
-                            title: Text(allLocations[locIdx], style: const TextStyle(fontWeight: FontWeight.bold)),
-                            children: [
-                              for (int ti = 0; ti < tasks.length; ti++)
-                                Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 8.0),
-                                  child: ListTile(
-                                    title: Text(tasks[ti]),
-                                    trailing: Checkbox(
-                                      value: _isCheckedPerLocation[locIdx][ti],
-                                      onChanged: (bool? v) {
-                                        setState(() {
-                                          _isCheckedPerLocation[locIdx][ti] = v ?? false;
-                                        });
-                                        _saveCheckboxState(locIdx, ti, _isCheckedPerLocation[locIdx][ti]);
-                                      },
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          );
-                        }),
-                      if (allLocations.length == 1)
-                        ...List.generate(_tasksPerLocation[0].length, (ti) {
-                          final checked = (_isCheckedPerLocation.isNotEmpty && _isCheckedPerLocation[0][ti]);
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: ListTile(
-                              title: Text(
-                                _tasksPerLocation[0][ti],
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.accent3,
+                          ),
+                        )
+                      : (_tasksPerLocation.isEmpty ||
+                              (_tasksPerLocation.every((l) => l.isEmpty)))
+                          ? Center(
+                              child: Text(
+                                "No tasks for today.",
                                 style: TextStyle(
-                                  color: checked ? Colors.grey : Colors.black,
-                                  fontWeight: checked ? FontWeight.w300 : FontWeight.w500,
+                                  color: AppColors.primaryText2,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              trailing: Checkbox(
-                                value: checked,
-                                onChanged: (bool? v) {
-                                  setState(() {
-                                    if (_isCheckedPerLocation.isEmpty) {
-                                      _isCheckedPerLocation = [ List<bool>.filled(_tasksPerLocation[0].length, false), ];
-                                    }
-                                    _isCheckedPerLocation[0][ti] = v ?? false;
-                                  });
-                                  _saveCheckboxState(0, ti, _isCheckedPerLocation[0][ti]);
-                                },
-                              ),
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                              children: [
+                                if (allLocations.length > 1)
+                                  ...List.generate(allLocations.length, (locIdx) {
+                                    final tasks = _tasksPerLocation[locIdx];
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 18),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.85),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black12,
+                                            blurRadius: 7,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ExpansionTile(
+                                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                                        title: Text(
+                                          allLocations[locIdx],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.accent3,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        children: [
+                                          for (int ti = 0; ti < tasks.length; ti++)
+                                            Container(
+                                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.secondary.withOpacity(0.9),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      tasks[ti],
+                                                      style: TextStyle(
+                                                        color: AppColors.primaryText,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Checkbox(
+                                                    value: _isCheckedPerLocation[locIdx][ti],
+                                                    activeColor: AppColors.accent3,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(5),
+                                                    ),
+                                                    onChanged: (bool? v) {
+                                                      setState(() {
+                                                        _isCheckedPerLocation[locIdx][ti] = v ?? false;
+                                                      });
+                                                      _saveCheckboxState(locIdx, ti, _isCheckedPerLocation[locIdx][ti]);
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                if (allLocations.length == 1)
+                                  ...List.generate(_tasksPerLocation[0].length, (ti) {
+                                    final checked = (_isCheckedPerLocation.isNotEmpty && _isCheckedPerLocation[0][ti]);
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 14),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary.withOpacity(0.9),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black12,
+                                            blurRadius: 6,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              _tasksPerLocation[0][ti],
+                                              style: TextStyle(
+                                                color: AppColors.primaryText,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          Checkbox(
+                                            value: checked,
+                                            activeColor: AppColors.accent3,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(5),
+                                            ),
+                                            onChanged: (bool? v) {
+                                              setState(() {
+                                                if (_isCheckedPerLocation.isEmpty) {
+                                                  _isCheckedPerLocation = [ List<bool>.filled(_tasksPerLocation[0].length, false), ];
+                                                }
+                                                _isCheckedPerLocation[0][ti] = v ?? false;
+                                              });
+                                              _saveCheckboxState(0, ti, _isCheckedPerLocation[0][ti]);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                              ],
                             ),
-                          );
-                        }),
-                    ],
-                  ),
                 ),
               ],
             ),
           ),
-        );
+        ),
+      ),
+    );
   }
 
   // (rămâne neschimbat; doar mesajul menționează o singură locație dacă există exact una)

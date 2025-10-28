@@ -101,16 +101,26 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.info, color: AppColors.accent3,),
+          icon: const Icon(Icons.info, color: AppColors.accentDark),
           onPressed: () {
             GoRouter.of(context).push(aboutPath);
           },
         ),
+        title: Text(
+          'Vaskmedmeg',
+          style: TextStyle(
+            color: AppColors.accentDark,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6.0,  vertical: 10.0),
@@ -118,56 +128,100 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
               onTap: () {
                 showDialog(
                   context: context,
-                  builder: (_) => Dialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    backgroundColor: AppColors.primary.withOpacity(0.95),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.local_fire_department, color: AppColors.accent3, size: 60),
-                          const SizedBox(height: 10),
-                          const Text(
-                            "🔥 Punctele tale",
-                            style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          ValueListenableBuilder<int>(
-                            valueListenable: pointsNotifier,
-                            builder: (context, points, _) {
-                              return Text(
-                                "Ai $points puncte acum!",
-                                style: const TextStyle(fontSize: 20, color: AppColors.accent3, fontWeight: FontWeight.w600),
-                                textAlign: TextAlign.center,
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            "Continuă să faci activități zilnice pentru a câștiga mai multe puncte și a-ți crește streak-ul! 💪",
-                            style: TextStyle(color: Colors.white70, fontSize: 14),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          TextButton.icon(
-                            onPressed: () {
-                              launchUrl(Uri.parse("https://ralu-norvegia.com")); // link către site
-                            },
-                            icon: const Icon(Icons.link, color: AppColors.accent3),
-                            label: const Text(
-                              "Vizitează site-ul nostru",
-                              style: TextStyle(color: AppColors.accent3),
+                  builder: (_) => AnimatedScale(
+                    scale: 1.0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutBack,
+                    child: Dialog(
+                      backgroundColor: AppColors.secondary.withOpacity(0.95),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        side: BorderSide(color: AppColors.accent3.withOpacity(0.6), width: 1),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primaryBackground,
+                                AppColors.primary.withOpacity(0.6)
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(24),
                           ),
-                          const SizedBox(height: 10),
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close),
-                            label: const Text("Închide"),
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent3),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.local_fire_department, color: AppColors.accent3, size: 60),
+                              const SizedBox(height: 10),
+                              const Text(
+                                "🔥 Punctele tale",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: AppColors.accent3,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Kanit',
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ValueListenableBuilder<int>(
+                                valueListenable: pointsNotifier,
+                                builder: (context, points, _) {
+                                  return Text(
+                                    "Ai $points puncte acum!",
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      color: AppColors.accent3,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "Continuă să faci activități zilnice pentru a câștiga mai multe puncte și a-ți crește streak-ul! 💪",
+                                style: TextStyle(
+                                  color: AppColors.primaryText2,
+                                  fontSize: 15,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () => launchUrl(Uri.parse("https://ralu-norvegia.com")),
+                                icon: const Icon(Icons.public, color: Colors.white),
+                                label: const Text(
+                                  "Vizitează site-ul nostru",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent3,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text(
+                                  "Închide",
+                                  style: TextStyle(
+                                    color: AppColors.accentDark,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -230,7 +284,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.calendar_today, color: AppColors.accent3),
+            icon: const Icon(Icons.calendar_today, color: AppColors.accentDark),
             onPressed: () async {
               final picked = await Navigator.of(context).push<DateTime>(
                 MaterialPageRoute(builder: (_) => const CalendarWeekView()),
@@ -243,21 +297,32 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
             },
           ),
           IconButton(
-            icon: const Icon(Icons.person, color: AppColors.accent3),
+            icon: const Icon(Icons.person, color: AppColors.accentDark),
             onPressed: () {
               GoRouter.of(context).push(userProfilePath);
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.accent3,
-          labelColor: AppColors.accent3,
-          unselectedLabelColor: AppColors.accent3.withOpacity(0.6),
-          tabs: const [
-            Tab(text: 'Ukentlig'),
-            Tab(text: 'Daglige gjøremål'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Container(
+            color: Colors.transparent,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.accent3,
+              indicatorWeight: 3,
+              labelColor: AppColors.accent3,
+              unselectedLabelColor: AppColors.accentDark.withOpacity(0.5),
+              labelStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              tabs: const [
+                Tab(text: 'Ukentlig'),
+                Tab(text: 'Daglige gjøremål'),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(

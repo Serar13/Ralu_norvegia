@@ -135,72 +135,133 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: _allTasksCompleted
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                "Congrats! You've completed all the tasks for today!",
-                style: TextStyle(fontSize: 24, color: AppColors.accent3),
-                textAlign: TextAlign.center,
+      backgroundColor: AppColors.primaryBackground,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 600),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Dagens oppgaver',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent3,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: _allTasksCompleted
+                        ? Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Color(0xFFDFF6E4),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.15),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.celebration,
+                                    color: Colors.green.shade700,
+                                    size: 64,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    "Congrats! You've completed all the tasks for today!",
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      color: Colors.green.shade800,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : FutureBuilder(
+                            future: _tasksFuture, // Fetch tasks for the current user
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return Center(child: CircularProgressIndicator());
+                              }
+                              if (snapshot.hasError) {
+                                return Center(child: Text('Error: ${snapshot.error}'));
+                              }
+
+                              return ListView.separated(
+                                padding: EdgeInsets.zero,
+                                itemCount: dailyItems.length,
+                                separatorBuilder: (context, index) => SizedBox(height: 16),
+                                itemBuilder: (context, index) {
+                                  final item = dailyItems[index];
+                                  final bool isCompleted = snapshot.data![item['title']] ?? false;
+
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      leading: isCompleted
+                                          ? Icon(Icons.check_circle, color: Colors.green)
+                                          : Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400),
+                                      title: Text(
+                                        item['title'],
+                                        style: TextStyle(
+                                          color: isCompleted ? Colors.grey : Colors.black87,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      onTap: () {
+                                        _onItemPressed(context, item);
+                                      },
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-           /* ElevatedButton(
-              onPressed: _resetUserTasksButton, // Reset tasks button (pentru testare)
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent3,
-                minimumSize: Size(200, 50),
-              ),
-              child: const Text("Reset Tasks"),
-            ),*/
-          ],
+          ),
         ),
-      )
-          : FutureBuilder(
-        future: _tasksFuture, // Fetch tasks for the current user
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: dailyItems.length,
-                  itemBuilder: (context, index) {
-                    final item = dailyItems[index];
-                    final bool isCompleted = snapshot.data![item['title']] ?? false;
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: ListTile(
-                        title: Text(
-                          item['title'],
-                          style: TextStyle(
-                            color: isCompleted ? Colors.grey : Colors.black,
-                          ),
-                        ),
-                        onTap: () {
-                          _onItemPressed(context, item);
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
       ),
     );
   }

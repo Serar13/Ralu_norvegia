@@ -75,71 +75,134 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
     // Handle empty descriptions case
     if (widget.descriptions.isEmpty) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text('No tasks available'),
-          centerTitle: true,
-        ),
+        backgroundColor: AppColors.primaryBackground,
         body: Center(
-          child: Text('No tasks available for this room.'),
+          child: Text('No tasks available for this room.',
+            style: TextStyle(
+              color: AppColors.accent3,
+              fontSize: 18,
+            ),
+          ),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title,
-          style: TextStyle(
-            color: AppColors.accent3,
+      backgroundColor: AppColors.primaryBackground,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(80),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          flexibleSpace: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: Text(
+                'Dagens oppgaver',
+                style: TextStyle(
+                  color: AppColors.accent3,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         ),
-        centerTitle: true,
-        backgroundColor: AppColors.secondary,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context, false); // Return false if back is pressed
-          },
-          icon: Icon(Icons.arrow_back, color: AppColors.accent3),
-        ),
       ),
-      body: Container(
-        color: AppColors.primary,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                itemCount: widget.descriptions.length,
-                itemBuilder: (context, index) {
-                  // Ensure the list is in bounds
-                  if (index >= _isChecked.length) return SizedBox.shrink();
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                shadowColor: Colors.black26,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ListView.builder(
+                    itemCount: widget.descriptions.length,
+                    itemBuilder: (context, index) {
+                      if (index >= _isChecked.length) return SizedBox.shrink();
 
-                  return CheckboxListTile(
-                    title: Text(widget.descriptions[index]),
-                    value: _isChecked[index],
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isChecked[index] = value ?? false;
-                      });
-                      _saveCheckboxState(index,
-                          _isChecked[index]); // Save state when checkbox changes
-                      _checkAllChecked(); // Check if all checkboxes are now checked
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6),
+                        child: Card(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _isChecked[index] = !_isChecked[index];
+                              });
+                              _saveCheckboxState(index, _isChecked[index]);
+                              _checkAllChecked();
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              trailing: Icon(
+                                _isChecked[index] ? Icons.task_alt : Icons.circle_outlined,
+                                color: _isChecked[index] ? AppColors.accent3 : Colors.grey,
+                              ),
+                              title: Text(
+                                widget.descriptions[index],
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
                     },
-                  );
-                },
+                  ),
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+            SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _allChecked
                     ? () {
-                  _completeTask(widget.title); // Mark the task as complete
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('All tasks completed!')),
-                  );
-                }
+                        _completeTask(widget.title);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('All tasks completed!'),
+                            backgroundColor: Color(0xFFB9F6CA), // pastel green
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      }
                     : null,
-                // Button is disabled if not all checkboxes are checked
-                child: Text("Complete Tasks"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent3,
+                  disabledBackgroundColor: AppColors.accent3.withOpacity(0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+                child: Text(
+                  "Complete Tasks",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
               ),
             ),
           ],
