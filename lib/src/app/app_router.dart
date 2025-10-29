@@ -8,6 +8,7 @@ import 'package:ralu_norvegia/src/ui/screens/editProfile_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/forgot_pw_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/home_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/log_in.dart';
+import 'package:ralu_norvegia/src/ui/screens/onBoarding_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/roomsHouse_view.dart';
 import 'package:ralu_norvegia/src/ui/screens/sing_in.dart';
 import 'package:ralu_norvegia/src/ui/screens/splash_screen.dart';
@@ -37,6 +38,7 @@ const String RoomsHousePath = "/RoomsHouse";
 const String ChooseOptionPath = "/ChooseOption";
 const String ReviewChosePath = "/ReviewChose";
 const String RoomsSetupPath = "/RoomsSetup";
+const String onboardingPath = "/onboarding";
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
 GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -82,6 +84,21 @@ class AppRouter {
         pageBuilder: (context, state) =>
             CustomTransitionPage(
               child: const WelcomeView(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Define a fade transition
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
+      ),
+      GoRoute(
+        name: AppRoutes.onBoardingRoute,
+        path: onboardingPath,
+        pageBuilder: (context, state) =>
+            CustomTransitionPage(
+              child: const OnBoardingView(),
               transitionsBuilder: (context, animation, secondaryAnimation, child) {
                 // Define a fade transition
                 return FadeTransition(
