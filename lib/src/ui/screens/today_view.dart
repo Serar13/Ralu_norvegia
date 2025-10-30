@@ -293,6 +293,9 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       final allDone = _isCheckedPerLocation.isNotEmpty &&
           _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
       if (allDone) {
+        await _incrementStreak(); // actualizează în Firestore
+        final newStreak = await calculateStreak(user.uid); // recalculează pentru UI
+        widget.streakNotifier.value = newStreak;
         _showCompletionDialog(context);
       }
     } catch (e) {
