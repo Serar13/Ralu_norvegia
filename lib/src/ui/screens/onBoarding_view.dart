@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../app/app_router.dart';
 import '../../theme/app_colors.dart';
 
 class OnBoardingView extends StatefulWidget {
@@ -15,27 +17,27 @@ class _OnBoardingViewState extends State<OnBoardingView> {
 
   final List<Map<String, String>> _slides = [
     {
-      'title': 'Bine ai venit la RaluNorvegia!',
-      'subtitle': 'Aici curățenia devine o plăcere.',
+      'title': 'Klar til å starte dagen din?',
+      'subtitle': 'La oss gjøre rengjøring til en hyggelig rutine.',
     },
     {
-      'title': 'Task-urile zilnice',
-      'subtitle': 'Nu uita să completezi activitățile din secțiunea Daily.',
+      'title': 'Dine daglige oppgaver',
+      'subtitle': 'Ikke glem å fullføre aktivitetene i Daglig-seksjonen.',
       'image': 'assets/Daily.jpeg',
     },
     {
-      'title': 'Sarcinile săptămânale',
-      'subtitle': 'Rezolvă task-urile pentru ziua curentă din săptămână.',
+      'title': 'Ukentlige oppgaver',
+      'subtitle': 'Fullfør oppgavene for dagens ukedag.',
       'image': 'assets/Today.jpeg',
     },
     {
-      'title': 'Calendarul tău',
-      'subtitle': 'Poți reveni oricând pentru a recupera task-uri ratate.',
+      'title': 'Din kalender',
+      'subtitle': 'Du kan alltid gå tilbake for å hente inn tapte oppgaver.',
       'image': 'assets/Calendar.jpeg',
     },
     {
-      'title': 'Menține-ți streak-ul!',
-      'subtitle': 'Finalizează zilnic și obține 10% reducere la 100 de zile consecutive.',
+      'title': 'Behold streaken din!',
+      'subtitle': 'Fullfør daglig og få 10% rabatt etter 100 sammenhengende dager.',
       'image': 'assets/Strike.png',
     },
   ];
@@ -44,7 +46,7 @@ class _OnBoardingViewState extends State<OnBoardingView> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hasSeenOnboarding', true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/welcome');
+    GoRouter.of(context).go((welcomePath));
   }
 
   @override
@@ -158,7 +160,7 @@ class _OnBoardingViewState extends State<OnBoardingView> {
                               curve: Curves.easeInOut,
                             ),
                     child: Text(
-                      _page == _slides.length - 1 ? "Gata, să începem!" : "Continuă",
+                      _page == _slides.length - 1 ? "La oss komme i gang!" : "Fortsett",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,

@@ -281,6 +281,11 @@ class _ReviewChoseState extends State<ReviewChose> {
                   weekHeaders: weekHeaders,
                 );
 
+                // Set hasCompletedSetup to true in user's document
+                await FirebaseFirestore.instance.collection('users').doc(uid).set({
+                  'hasCompletedSetup': true,
+                }, SetOptions(merge: true));
+
                 if (mounted) {
                   context.go(homePath);
                 }

@@ -20,30 +20,41 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> passwordReset() async {
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
-      );
+    final email = _emailController.text.trim();
+    print("📧 Attempting password reset for: $email");
 
-      // Afișează un dialog de confirmare
+    if (email.isEmpty) {
+      print("⚠️ Email field is empty!");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter an email address.")),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      print("✅ Password reset email sent successfully to $email");
+
       showDialog(
         context: context,
         builder: (context) {
           return const AlertDialog(
-            content: Text('Password reset link sent! Check your email'),
+            content: Text('Password reset link sent! Check your email.'),
           );
         },
       );
     } on FirebaseAuthException catch (e) {
-      // Afișează un mesaj de eroare
+      print("❌ FirebaseAuthException: ${e.code} → ${e.message}");
       showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
-            content: Text(e.message.toString()),
+            content: Text("Error: ${e.message}"),
           );
         },
       );
+    } catch (e) {
+      print("💥 Unexpected error: $e");
     }
   }
 

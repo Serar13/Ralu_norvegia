@@ -37,8 +37,8 @@ class UserNameValidator extends Validator {
   }
 
   bool isUserNameValid(String value) {
-    String pattern = r'^[a-zA-Z0-9_]+$';
-    RegExp regExp = RegExp(pattern);
+    String pattern = r"^[\p{L}\p{M}\s'\-]+$";
+    RegExp regExp = RegExp(pattern, unicode: true);
     return regExp.hasMatch(value);
   }
 }
@@ -133,8 +133,8 @@ class RestaurantNameValidator extends Validator {
   }
 
   bool isRestaurantNameValid(String value) {
-    String pattern = r'^[a-zA-Z0-9\s]+$';
-    RegExp regExp = RegExp(pattern);
+    String pattern = r"^[\p{L}\p{M}0-9\s'\-]+$";
+    RegExp regExp = RegExp(pattern, unicode: true);
     return regExp.hasMatch(value);
   }
 }

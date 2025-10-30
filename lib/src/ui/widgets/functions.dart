@@ -38,7 +38,7 @@ bool isFirstName(String username) {
     return false;
   }
 
-  final regex = RegExp(r'^[a-zA-Z0-9_]+$');
+  final regex = RegExp(r"^[\p{L}\p{M}\s'\-]+$", unicode: true);
   return regex.hasMatch(username);
 }
 
@@ -48,7 +48,7 @@ bool isLastName(String username) {
     return false;
   }
 
-  final regex = RegExp(r'^[a-zA-Z0-9_]+$');
+  final regex = RegExp(r"^[\p{L}\p{M}\s'\-]+$", unicode: true);
   return regex.hasMatch(username);
 }
 

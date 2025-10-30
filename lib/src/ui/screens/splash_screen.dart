@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ralu_norvegia/src/app/app_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -53,18 +54,19 @@ class _SplashScreenState extends State<SplashScreen> {
       await prefs.setBool('hasSeenOnboarding', true);
       if (mounted) {
         await Future.delayed(const Duration(seconds: 2));
-        GoRouter.of(context).go('/onboarding');
+        GoRouter.of(context).go(onboardingPath);
       }
     } else {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // await _navigateAfterDelay(homePath);
-        await Future.delayed(const Duration(seconds: 2));
-        GoRouter.of(context).go('/onboarding');
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data()?['hasCompletedSetup'] == true) {
+          await _navigateAfterDelay(homePath);
+        } else {
+          await _navigateAfterDelay(RoomsSetupPath);
+        }
       } else {
-        // await _navigateAfterDelay(welcomePath);
-        await Future.delayed(const Duration(seconds: 2));
-        GoRouter.of(context).go('/onboarding');
+        await _navigateAfterDelay(welcomePath);
       }
     }
   }

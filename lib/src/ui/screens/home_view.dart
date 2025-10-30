@@ -158,7 +158,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
                               const Icon(Icons.local_fire_department, color: AppColors.accent3, size: 60),
                               const SizedBox(height: 10),
                               const Text(
-                                "🔥 Punctele tale",
+                                "🔥 Poengene dine",
                                 style: TextStyle(
                                   fontSize: 24,
                                   color: AppColors.accent3,
@@ -171,7 +171,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
                                 valueListenable: pointsNotifier,
                                 builder: (context, points, _) {
                                   return Text(
-                                    "Ai $points puncte acum!",
+                                    "Du har $points poeng nå!",
                                     style: const TextStyle(
                                       fontSize: 20,
                                       color: AppColors.accent3,
@@ -183,7 +183,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
                               ),
                               const SizedBox(height: 16),
                               const Text(
-                                "Continuă să faci activități zilnice pentru a câștiga mai multe puncte și a-ți crește streak-ul! 💪",
+                                "Fortsett å gjøre dine daglige oppgaver for å tjene flere poeng og øke streaken din! 💪",
                                 style: TextStyle(
                                   color: AppColors.primaryText2,
                                   fontSize: 15,
@@ -193,10 +193,10 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
-                                onPressed: () => launchUrl(Uri.parse("https://ralu-norvegia.com")),
+                                onPressed: () => launchUrl(Uri.parse("https://vaskmedmeg.no/")),
                                 icon: const Icon(Icons.public, color: Colors.white),
                                 label: const Text(
-                                  "Vizitează site-ul nostru",
+                                  "Besøk nettsiden vår",
                                   style: TextStyle(color: Colors.white),
                                 ),
                                 style: ElevatedButton.styleFrom(
@@ -211,7 +211,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
                                 child: const Text(
-                                  "Închide",
+                                  "Lukk",
                                   style: TextStyle(
                                     color: AppColors.accentDark,
                                     fontWeight: FontWeight.bold,
