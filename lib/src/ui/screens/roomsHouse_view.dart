@@ -14,7 +14,7 @@ class WeeklyPlanner extends StatefulWidget {
 }
 
 class _WeeklyPlannerState extends State<WeeklyPlanner> {
-  final List<String> tasks = ["Dormitor", "Bucătărie", "Living", "Baie", "Birou", "Dormitor copii", "relax"];
+  final List<String> tasks = ["Dormitor", "Kjøkken", "Stue", "Bad", "Kontor", "Barnerom", "Avslapping"];
   final Map<String, String?> weekPlan = {
     "Luni": null,
     "Marti": null,
@@ -35,7 +35,7 @@ class _WeeklyPlannerState extends State<WeeklyPlanner> {
       appBar: AppBar(
         backgroundColor: AppColors.accent,
         centerTitle: true,
-        title: const Text("Planificator Săptămânal"),
+        title: const Text("Ukentlig planlegger"),
         elevation: 0,
       ),
       body: Column(
@@ -240,7 +240,7 @@ class _WeeklyPlannerState extends State<WeeklyPlanner> {
                   GoRouter.of(context).push(ReviewChosePath, extra: {'optionType': 'custom', 'weekPlan': weekPlan, 'userId': widget.userId});
                 },
                 child: const Text(
-                  "Finalizează Configurația",
+                  "Fullfør oppsettet",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

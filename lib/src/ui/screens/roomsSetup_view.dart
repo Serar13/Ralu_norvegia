@@ -258,7 +258,7 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
                               child: TextField(
                                 controller: controller,
                                 decoration: InputDecoration(
-                                  labelText: 'Nume ${type.toLowerCase()} ${idx + 1}',
+                                  labelText: 'Navn ${type.toLowerCase()} ${idx + 1}',
                                   filled: true,
                                   fillColor: AppColors.secondaryBackground,
                                   border: OutlineInputBorder(
@@ -303,7 +303,7 @@ class _RoomsSetupPageState extends State<RoomsSetupPage> {
                           backgroundColor: AppColors.accent3,
                           content: const Center(
                             child: Text(
-                              'Verifică: Kjøkken minim 1 și numele să nu fie goale.',
+                              'Kontroller: minst 1 kjøkken og at alle navn er fylt ut.',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

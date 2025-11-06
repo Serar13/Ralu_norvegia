@@ -36,6 +36,16 @@ class _ReviewChoseState extends State<ReviewChose> {
     "Duminica": ["Relaxează-te", "Planifică săptămâna viitoare"],
   };
 
+  final Map<String, String> dayTranslations = {
+    'Luni': 'Mandag',
+    'Marti': 'Tirsdag',
+    'Miercuri': 'Onsdag',
+    'Joi': 'Torsdag',
+    'Vineri': 'Fredag',
+    'Sambata': 'Lørdag',
+    'Duminica': 'Søndag',
+  };
+
   Future<void> saveToFirestore({
     required Map<String, Map<String, List<String>>> planWeeks,
     required Map<String, String> weekHeaders,
@@ -93,7 +103,7 @@ class _ReviewChoseState extends State<ReviewChose> {
       children: [
         Scaffold(backgroundColor: AppColors.primaryBackground,
           appBar: AppBar(
-            title: const Text("Review Selecții"),
+            title: const Text("Gjennomgå valg"),
             // leading: IconButton(
             //   icon: const Icon(Icons.arrow_back),
             //   onPressed: () {
@@ -105,6 +115,12 @@ class _ReviewChoseState extends State<ReviewChose> {
             //     );
             //   },
             // ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                context.go(RoomsSetupPath);
+              },
+            ),
           ),
           body: Padding(
     padding: const EdgeInsets.all(16.0),
@@ -113,7 +129,7 @@ class _ReviewChoseState extends State<ReviewChose> {
       children: [
         // Header text in the refreshed style
         const Text(
-          "Revizuiește planul săptămânal",
+          "Se gjennom ukesplanen",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -171,7 +187,7 @@ class _ReviewChoseState extends State<ReviewChose> {
                                     const Icon(Icons.crop_square, size: 14, color: AppColors.accent3),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Suprafață: ${weekHeaders[week]}',
+                                      'Fokus: ${weekHeaders[week]}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: AppColors.primaryText2,
@@ -211,7 +227,7 @@ class _ReviewChoseState extends State<ReviewChose> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          day,
+                                          dayTranslations[day] ?? day,
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
@@ -221,7 +237,7 @@ class _ReviewChoseState extends State<ReviewChose> {
                                         const SizedBox(height: 4),
                                         Text(
                                           planWeeks[week]![day]!.isEmpty
-                                              ? 'Fără locații'
+                                              ? 'Ingen områder'
                                               : planWeeks[week]![day]!.join(', '),
                                           style: const TextStyle(
                                             fontSize: 13,
@@ -296,7 +312,7 @@ class _ReviewChoseState extends State<ReviewChose> {
               }
             },
             child: const Text(
-              "Confirmă și creează",
+              "Bekreft og opprett",
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
           ),
@@ -328,7 +344,7 @@ class _ReviewChoseState extends State<ReviewChose> {
             CircularProgressIndicator(),
             SizedBox(height: 12),
             Text(
-              'Se salvează planul...',
+              'Lagrer planen...',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

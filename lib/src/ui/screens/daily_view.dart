@@ -285,12 +285,6 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
     });
   }
 
-  // Resetăm task-urile manual (pentru testare)
-  Future<void> _resetUserTasksButton() async {
-    await _resetUserTasks();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tasks reset!')));
-  }
-
   // Fetch user tasks
   Future<Map<String, bool>> _fetchUserTasks() async {
     final user = FirebaseAuth.instance.currentUser!;

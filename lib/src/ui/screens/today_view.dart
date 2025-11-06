@@ -401,7 +401,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        "Day: $currentDay",
+                        "Dag: $currentDay",
                         style: TextStyle(
                           color: AppColors.primaryText2,
                           fontSize: 15,
@@ -410,7 +410,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                       if (allLocations.length == 1) ...[
                         const SizedBox(height: 4),
                         Text(
-                          "Location: ${allLocations.first}",
+                          "Rom: ${allLocations.first}",
                           style: TextStyle(
                             color: AppColors.primaryText2,
                             fontSize: 15,
@@ -420,7 +420,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                       if (surfaceForToday != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          "Suprafață: $surfaceForToday",
+                          "Fokus: $surfaceForToday",
                           style: TextStyle(
                             color: AppColors.primaryText2,
                             fontSize: 15,
