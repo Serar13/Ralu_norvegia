@@ -67,32 +67,29 @@ class _aboutUsViewState extends State<aboutUsView> {
                     ),
                     child: IconButton(
                       onPressed: () async {
+                        final Uri emailUri = Uri(
+                          scheme: 'mailto',
+                          path: 'raresimon@gmail.com',
+                          queryParameters: {
+                            'subject': 'Hello!',
+                            'body': 'Hei Raluca 👋',
+                          },
+                        );
+
                         try {
-                          String? encodeQueryParameters(Map<String, String> params) {
-                            return params.entries
-                                .map((MapEntry<String, String> e) =>
-                                    '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-                                .join('&');
-                          }
-
-                          final Uri emailUri = Uri(
-                            scheme: 'mailto',
-                            path: 'raresimon@gmail.com',
-                            query: encodeQueryParameters(<String, String>{
-                              'subject': 'Hello',
-                              'body': 'Heeloo from body :))'
-                            }),
+                          final launched = await launchUrl(
+                            emailUri,
+                            mode: LaunchMode.platformDefault,
                           );
-
-                          if (await canLaunchUrl(emailUri)) {
-                            await launchUrl(emailUri, mode: LaunchMode.externalApplication);
-                          } else {
-                            throw 'Could not launch email';
+                          if (!launched) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Kunne ikke åpne epostappen. Sjekk at du har en epostapp installert.")),
+                            );
                           }
                         } catch (e) {
-                          print("Failed to launch email: $e");
+                          print("Error launching email: $e");
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Error: Could not open email app. Please check if an email app is installed.")),
+                            SnackBar(content: Text("Error: Could not open email app.")),
                           );
                         }
                       },
@@ -119,8 +116,14 @@ class _aboutUsViewState extends State<aboutUsView> {
                       onPressed: () async {
                         final Uri websiteUri = Uri.parse('https://vaskmedmeg.no/');
                         try {
-                          if (await canLaunchUrl(websiteUri)) {
-                            await launchUrl(websiteUri, mode: LaunchMode.externalApplication);
+                          final launched = await launchUrl(
+                            websiteUri,
+                            mode: LaunchMode.platformDefault, // 🔥 nu mai forțăm externalApplication
+                          );
+                          if (!launched) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Kunne ikke åpne nettsiden. Sjekk nettleserinnstillingene dine.")),
+                            );
                           }
                         } catch (e) {
                           print("Error: $e");
@@ -151,13 +154,26 @@ class _aboutUsViewState extends State<aboutUsView> {
                     ),
                     child: IconButton(
                       onPressed: () async {
-                        final Uri instagramUri = Uri.parse('https://www.instagram.com/vaskmedmeg/');
+                        const String username = 'vaskmedmeg';
+                        final Uri appUri = Uri.parse('instagram://user?username=$username');
+                        final Uri webUri = Uri.parse('https://www.instagram.com/$username/');
+
                         try {
-                          if (await canLaunchUrl(instagramUri)) {
-                            await launchUrl(instagramUri);
+                          // verifică dacă poate lansa aplicația Instagram
+                          final bool canLaunchApp = await canLaunchUrl(appUri);
+
+                          if (canLaunchApp) {
+                            await launchUrl(appUri, mode: LaunchMode.externalApplication);
+                          } else {
+                            await launchUrl(webUri, mode: LaunchMode.platformDefault);
                           }
                         } catch (e) {
                           print("Error: $e");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Kunne ikke åpne Instagram. Sjekk appen eller nettsiden."),
+                            ),
+                          );
                         }
                       },
                       icon: Image.asset('assets/instagram.webp'),
@@ -166,23 +182,26 @@ class _aboutUsViewState extends State<aboutUsView> {
                 ],
               ),
               const SizedBox(height: 30),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      'Hei! Jeg er Raluca, mor, kone og renholdsleder i Kristiansand – bedre kjent som @vaskmedmeg på Instagram. Som renholdsentusiast med 15 års erfaring (10 som faglært) elsker jeg å dele tips, triks og produkter som gjør vasking enklere og bidrar til en positiv holdning rundt renholdet.\n\n'
-                      'Jeg vet hvordan det føles når vasking virker kjedelig og frustrerende – jeg var der selv! Men jeg har lært hva skal til for et lett og overkommelig vaskeliv og i appen "Vask med meg" hjelper jeg deg å gjøre det samme.\n\n'
-                      'Her får du en smart vaskeplan med konkrete daglige økter som er enkle å følge. Si farvel til utsettelse, rot som hoper seg opp og helger tapt til maratonvask. Bygg rutiner, få kontroll og nyt et plettfritt hjem uten å slitte deg ut!\n\n'
-                      'Velkommen til en ny vaskeverden – la oss starte i dag! Har du spørsmål? Sjekk appen eller kontakt meg via epost eller Instagram',
-                      style: TextStyle(
-                        color: AppColors.primaryText,
-                        height: 1.5,
-                        fontSize: 15,
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: SingleChildScrollView(
+                      physics: BouncingScrollPhysics(),
+                      child: Text(
+                        'Hei! Jeg er Raluca, mor, kone og renholdsleder i Kristiansand – bedre kjent som @vaskmedmeg på Instagram. Som renholdsentusiast med 15 års erfaring (10 som faglært) elsker jeg å dele tips, triks og produkter som gjør vasking enklere og bidrar til en positiv holdning rundt renholdet.\n\n'
+                        'Jeg vet hvordan det føles når vasking virker kjedelig og frustrerende – jeg var der selv! Men jeg har lært hva skal til for et lett og overkommelig vaskeliv og i appen "Vask med meg" hjelper jeg deg å gjøre det samme.\n\n'
+                        'Her får du en smart vaskeplan med konkrete daglige økter som er enkle å følge. Si farvel til utsettelse, rot som hoper seg opp og helger tapt til maratonvask. Bygg rutiner, få kontroll og nyt et plettfritt hjem uten å slitte deg ut!\n\n'
+                        'Velkommen til en ny vaskeverden – la oss starte i dag! Har du spørsmål? Sjekk appen eller kontakt meg via epost eller Instagram',
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          height: 1.5,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                   ),

@@ -445,7 +445,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
       backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
         title: const Text(
-          'Calendar',
+          'Kalender',
           style: TextStyle(
             color: AppColors.accentDark,
             fontFamily: 'Kanit',
@@ -456,102 +456,105 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
         elevation: 0,
         backgroundColor: AppColors.primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(12),
-                child: TableCalendar(
-                  firstDay: _accountCreatedAt!,
-                  lastDay: DateTime.now(),
-                  focusedDay: _focusedDay,
-                  calendarFormat: CalendarFormat.month,
-                  startingDayOfWeek: StartingDayOfWeek.monday,
-                  selectedDayPredicate: (day) => _isSameDay(day, _selectedDay),
-                  availableGestures: AvailableGestures.horizontalSwipe,
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                    titleTextStyle: TextStyle(
-                      color: AppColors.accentDark,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Kanit',
-                    ),
-                    leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.accent3),
-                    rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.accent3),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  calendarStyle: CalendarStyle(
-                    isTodayHighlighted: true,
-                    outsideDaysVisible: false,
-                    todayDecoration: BoxDecoration(
-                      color: AppColors.accent3.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.accent3, width: 1.5),
+                  padding: const EdgeInsets.all(12),
+                  child: TableCalendar(
+                    locale:'no_NO',
+                    firstDay: _accountCreatedAt!,
+                    lastDay: DateTime.now(),
+                    focusedDay: _focusedDay,
+                    calendarFormat: CalendarFormat.month,
+                    startingDayOfWeek: StartingDayOfWeek.monday,
+                    selectedDayPredicate: (day) => _isSameDay(day, _selectedDay),
+                    availableGestures: AvailableGestures.horizontalSwipe,
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        color: AppColors.accentDark,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Kanit',
+                      ),
+                      leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.accent3),
+                      rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.accent3),
                     ),
-                    selectedDecoration: BoxDecoration(
-                      color: AppColors.accent3,
-                      shape: BoxShape.circle,
+                    calendarStyle: CalendarStyle(
+                      isTodayHighlighted: true,
+                      outsideDaysVisible: false,
+                      todayDecoration: BoxDecoration(
+                        color: AppColors.accent3.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.accent3, width: 1.5),
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: AppColors.accent3,
+                        shape: BoxShape.circle,
+                      ),
+                      selectedTextStyle: const TextStyle(color: Colors.white),
+                      weekendTextStyle: const TextStyle(
+                        color: AppColors.primaryText2,
+                        fontFamily: 'Kanit',
+                      ),
+                      defaultTextStyle: const TextStyle(
+                        color: AppColors.primaryText,
+                        fontFamily: 'Kanit',
+                      ),
+                      outsideTextStyle: const TextStyle(
+                        color: AppColors.primaryText2,
+                        fontFamily: 'Kanit',
+                      ),
                     ),
-                    selectedTextStyle: const TextStyle(color: Colors.white),
-                    weekendTextStyle: const TextStyle(
-                      color: AppColors.primaryText2,
-                      fontFamily: 'Kanit',
-                    ),
-                    defaultTextStyle: const TextStyle(
-                      color: AppColors.primaryText,
-                      fontFamily: 'Kanit',
-                    ),
-                    outsideTextStyle: const TextStyle(
-                      color: AppColors.primaryText2,
-                      fontFamily: 'Kanit',
-                    ),
+                    onDaySelected: (selectedDay, focusedDay) async {
+                      if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Zi nepermisă.')),
+                        );
+                        return;
+                      }
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                      Navigator.of(context).pop<DateTime>(selectedDay);
+                    },
+                    onPageChanged: (focusedDay) async {
+                      await _handlePageChange(focusedDay);
+                    },
+                    calendarBuilders: calendarBuilders(),
                   ),
-                  onDaySelected: (selectedDay, focusedDay) async {
-                    if (!_isSelectable(selectedDay) || !_isWithinAccountRange(selectedDay)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Zi nepermisă.')),
-                      );
-                      return;
-                    }
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                    Navigator.of(context).pop<DateTime>(selectedDay);
-                  },
-                  onPageChanged: (focusedDay) async {
-                    await _handlePageChange(focusedDay);
-                  },
-                  calendarBuilders: calendarBuilders(),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                _Legend(color: Colors.red, label: 'Nefăcut'),
-                SizedBox(width: 16),
-                _Legend(color: Colors.orange, label: 'În progres'),
-                SizedBox(width: 16),
-                _Legend(color: Colors.green, label: 'Complet'),
-              ],
-            ),
-          ],
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  _Legend(color: Colors.red, label: 'Ikke gjort'),
+                  SizedBox(width: 16),
+                  _Legend(color: Colors.orange, label: 'I gang'),
+                  SizedBox(width: 16),
+                  _Legend(color: Colors.green, label: 'Fullført'),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

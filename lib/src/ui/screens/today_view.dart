@@ -37,6 +37,26 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
     _loadTasksForDate(date);
   }
 
+  String translateDay(String day) {
+    switch (day.toLowerCase()) {
+      case 'luni':
+        return 'Mandag';
+      case 'marti':
+        return 'Tirsdag';
+      case 'miercuri':
+        return 'Onsdag';
+      case 'joi':
+        return 'Torsdag';
+      case 'vineri':
+        return 'Fredag';
+      case 'sambata':
+        return 'Lørdag';
+      case 'duminica':
+        return 'Søndag';
+      default:
+        return day; // fallback dacă e deja tradus sau necunoscut
+    }
+  }
 
   @override
   bool get wantKeepAlive => true;
@@ -381,7 +401,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                           Icon(Icons.calendar_today, color: AppColors.accent3, size: 22),
                           const SizedBox(width: 10),
                           Text(
-                            "Current Week",
+                            "Denne uken",
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -401,7 +421,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        "Dag: $currentDay",
+                        "Dag: ${translateDay(currentDay)}",
                         style: TextStyle(
                           color: AppColors.primaryText2,
                           fontSize: 15,

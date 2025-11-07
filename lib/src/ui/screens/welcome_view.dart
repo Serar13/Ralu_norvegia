@@ -40,7 +40,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                 duration: const Duration(milliseconds: 800),
                 curve: Curves.easeInOut,
                 child: Text(
-                  AppStrings.welcome(context),
+                  "La oss starte!",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.accentDark,
@@ -84,7 +84,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                   ),
                   alignment: Alignment.center,
                   child: const Text(
-                    "Continue with Email",
+                    "Fortsett med e-post",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -98,7 +98,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Already have an account?",
+                    "Har du allerede en konto?",
                     style: TextStyle(
                       color: Colors.grey.withOpacity(0.6),
                       fontSize: 16,
@@ -110,7 +110,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                       GoRouter.of(context).push(loginPath);
                     },
                     child: Text(
-                      "Log in",
+                      "Logg inn",
                       style: TextStyle(
                         color: AppColors.accent3,
                         fontSize: 16,

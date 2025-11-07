@@ -14,9 +14,9 @@
       }
     }
   },
-  "welcome": "aiaa zic",
+  "welcome": "Med meg blir det rent!",
   "@welcome":{
-    "description":"aiaa zic"
+    "description":"Med meg blir det rent!"
   },
   "userName": "Username",
   "@userName":{

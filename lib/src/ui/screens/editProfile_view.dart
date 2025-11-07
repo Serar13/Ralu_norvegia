@@ -88,13 +88,13 @@ class _EditProfileViewState extends State<EditProfileView> {
         child: Column(
           children: [
             WidgetFactory.makeInput(
-              label: "First Name",
+              label: "Fornavn",
               contex: context,
               controller: _firstNameController,
               validator: null,
             ),
             WidgetFactory.makeInput(
-              label: "Last Name",
+              label: "Etternavn",
               contex: context,
               controller: _lastNameController,
               validator: null,
@@ -103,7 +103,7 @@ class _EditProfileViewState extends State<EditProfileView> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : WidgetFactory.buttonWithTextIcon(
-              "Save",
+              "Lagre",
               55,
               double.infinity,
               1.0,

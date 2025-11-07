@@ -1,4 +1,4 @@
-package com.example.ralu_norvegia
+package com.rares.vaskmedmeg
 
 import io.flutter.embedding.android.FlutterActivity
 

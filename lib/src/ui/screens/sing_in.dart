@@ -200,7 +200,7 @@ class _singInViewState extends State<singInView> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    "Create Account",
+                    "Opprett konto",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,
@@ -210,7 +210,7 @@ class _singInViewState extends State<singInView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Join Vaskmedmeg and keep your clean streak thriving",
+                    "Bli med i Vaskmedmeg og hold rengjøringsrekken din i live",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.primaryText2,
@@ -219,31 +219,31 @@ class _singInViewState extends State<singInView> {
                   ),
                   const SizedBox(height: 32),
                   WidgetFactory.makeInput(
-                    label: "First Name",
+                    label: "Fornavn",
                     contex: context,
                     controller: _firstNameController,
                     validator: UserNameValidator(),
                   ),
                   WidgetFactory.makeInput(
-                    label: "Last Name",
+                    label: "Etternavn",
                     contex: context,
                     controller: _lastNameController,
                     validator: UserNameValidator(),
                   ),
                   WidgetFactory.makeInput(
-                    label: "Email",
+                    label: "E-post",
                     contex: context,
                     controller: _emailController,
                     validator: EmailValidator(),
                   ),
                   WidgetFactory.makeInput(
-                    label: "Phone Number",
+                    label: "Telefonnummer",
                     contex: context,
                     controller: _phoneNumberController,
                     validator: PhoneNumberValidator(),
                   ),
                   WidgetFactory.makeInputPassword(
-                    label: "Password",
+                    label: "Passord",
                     contex: context,
                     obscureText: passToggle,
                     passToggle: passToggle,
@@ -252,7 +252,7 @@ class _singInViewState extends State<singInView> {
                     togglePasswordVisibility: togglePasswordVisibility,
                   ),
                   WidgetFactory.makeInputPassword(
-                    label: "Confirm Password",
+                    label: "Bekreft passord",
                     contex: context,
                     obscureText: passToggle,
                     passToggle: passToggle,
@@ -284,7 +284,7 @@ class _singInViewState extends State<singInView> {
                       ),
                       child: const Center(
                         child: Text(
-                          "Sign Up",
+                          "Registrer deg",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -299,13 +299,13 @@ class _singInViewState extends State<singInView> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Already have an  account? ",
+                        "Har du allerede en konto?",
                         style: TextStyle(color: AppColors.primaryText2),
                       ),
                       GestureDetector(
                         onTap: () => GoRouter.of(context).push(loginPath),
                         child: Text(
-                          "Log in",
+                          "Logg inn",
                           style: TextStyle(
                             color: AppColors.accent3,
                             fontWeight: FontWeight.bold,

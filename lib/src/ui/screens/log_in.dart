@@ -191,7 +191,7 @@ class _logInViewState extends State<logInView> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    "Welcome Back",
+                    "Velkommen tilbake",
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -200,7 +200,7 @@ class _logInViewState extends State<logInView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Log in to continue your clean streak",
+                    "Logg inn for å fortsette rengjøringsrekken din",
                     style: TextStyle(
                       color: AppColors.primaryText2,
                       fontSize: 16,
@@ -209,13 +209,13 @@ class _logInViewState extends State<logInView> {
                   ),
                   const SizedBox(height: 32),
                   WidgetFactory.makeInput(
-                    label: "Email",
+                    label: "E-post",
                     contex: context,
                     controller: _emailController,
                     validator: EmailValidator(),
                   ),
                   WidgetFactory.makeInputPassword(
-                    label: "Password",
+                    label: "Passord",
                     contex: context,
                     obscureText: passToggle,
                     passToggle: passToggle,
@@ -228,7 +228,7 @@ class _logInViewState extends State<logInView> {
                     child: GestureDetector(
                       onTap: () => GoRouter.of(context).push(forgotPasswordPagePath),
                       child: Text(
-                        "Forgot password?",
+                        "Glemt passord?",
                         style: TextStyle(
                           color: AppColors.accent3,
                           fontWeight: FontWeight.w600,
@@ -270,13 +270,13 @@ class _logInViewState extends State<logInView> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        "Har du ikke en konto?",
                         style: TextStyle(color: AppColors.primaryText2),
                       ),
                       GestureDetector(
                         onTap: () => GoRouter.of(context).push(singinPath),
                         child: Text(
-                          "Sign up",
+                          "Registrer deg",
                           style: TextStyle(
                             color: AppColors.accent3,
                             fontWeight: FontWeight.bold,
