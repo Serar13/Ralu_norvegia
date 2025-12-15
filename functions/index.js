@@ -1,10 +1,10 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-export const sendUnfinishedTasksNotification = functions.pubsub
-  .schedule("0 21 * * *") // la ora 21:00 zilnic
+exports.sendUnfinishedTasksNotification = functions.pubsub
+  .schedule("15 14 * * *") // la ora 21:00 zilnic
   .timeZone("Europe/Oslo") // ora Norvegiei
   .onRun(async () => {
     const db = admin.firestore();
@@ -53,6 +53,37 @@ export const sendUnfinishedTasksNotification = functions.pubsub
       }
     }
 
+    return null;
+  });
+
+exports.sendDailyMotivationNotification = functions.pubsub
+  .schedule("40 19 * * *") // în fiecare zi la ora 18:15 ora României
+  .timeZone("Europe/Bucharest") // ora României
+  .onRun(async () => {
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const fcmToken = userDoc.data().fcmToken;
+
+      if (!fcmToken) continue; // skip dacă nu are token
+
+      try {
+        await admin.messaging().send({
+          token: fcmToken,
+          notification: {
+            title: "🧹 Det er tid for rengjøring!",
+            body: "Gjennomfør dagens oppgaver og hold streaken din i live 🔥",
+          },
+        });
+        console.log(`✅ Sent daily motivation to ${userId}`);
+      } catch (error) {
+        console.error(`❌ Failed to send notification to ${userId}:`, error);
+      }
+    }
+
+    console.log("✅ Daily motivation notifications sent to all users");
     return null;
   });
 

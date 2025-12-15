@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ralu_norvegia/src/app/app_router.dart';
@@ -29,6 +30,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   ValueNotifier<int> streakNotifier = ValueNotifier<int>(0);
   bool _pulse = false;
   bool isLoading = true;
+  bool _hasPulsedOnce = false;
 
   Future<void> _loadUserData() async {
     setState(() => isLoading = true);
@@ -60,33 +62,60 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
     }
   }
 
+  Future<void> initNotifications(BuildContext context) async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      String? token = await messaging.getToken();
+      if (token != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'fcmToken': token,
+        }, SetOptions(merge: true));
+      }
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        if (message.notification != null) {
+          final snackBar = SnackBar(
+            content: Text(message.notification!.title ?? 'Ny melding'),
+            duration: const Duration(seconds: 3),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _tabController = TabController(length: 2, vsync: this);
 
-    // animație "pulse" mai energică și random
-    _startRandomPulse();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startSinglePulseOnce();
+      initNotifications(context);
+    });
   }
 
-  void _startRandomPulse() {
-    Future.delayed(const Duration(seconds: 2), () async {
-      while (mounted) {
-        // Așteaptă o perioadă random între 3 și 7 secunde
-        await Future.delayed(Duration(seconds: 3 + (4 * (0.5 + (0.5 - (DateTime.now().millisecond % 1000) / 1000))).toInt()));
-        if (!mounted) break;
+  void _startSinglePulseOnce() async {
+    if (_hasPulsedOnce) return;
+    _hasPulsedOnce = true;
 
-        // Pulse rapid, ca în desene animate
-        for (int i = 0; i < 2; i++) {
-          if (!mounted) return;
-          setState(() => _pulse = true);
-          await Future.delayed(const Duration(milliseconds: 150));
-          setState(() => _pulse = false);
-          await Future.delayed(const Duration(milliseconds: 150));
-        }
-      }
-    });
+    await Future.delayed(const Duration(seconds: 2));
+
+    for (int i = 0; i < 2; i++) {
+      if (!mounted) return;
+      setState(() => _pulse = true);
+      await Future.delayed(const Duration(milliseconds: 150));
+      setState(() => _pulse = false);
+      await Future.delayed(const Duration(milliseconds: 150));
+    }
   }
 
   @override
@@ -112,12 +141,15 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
             GoRouter.of(context).push(aboutPath);
           },
         ),
-        title: Text(
-          'Vaskmedmeg',
-          style: TextStyle(
-            color: AppColors.accentDark,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Vaskmedmeg',
+            style: TextStyle(
+              color: AppColors.accentDark,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         centerTitle: true,

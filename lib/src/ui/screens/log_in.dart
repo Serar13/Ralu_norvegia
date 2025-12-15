@@ -6,6 +6,7 @@ import 'package:ralu_norvegia/src/app/app_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/widgets/validators.dart';
 import 'package:ralu_norvegia/src/ui/widgets/widget_factory.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class logInView extends StatefulWidget {
   const logInView({super.key});
@@ -114,7 +115,6 @@ class _logInViewState extends State<logInView> {
   }
   */
 
-
   Future<void> _postLoginRoute() async {
     final u = FirebaseAuth.instance.currentUser;
     if (u == null) return;
@@ -148,6 +148,14 @@ class _logInViewState extends State<logInView> {
 
     if (!mounted) return;
     // Trimitem spre home; dacă setupDone e fals, redirect-ul din AppRouter te duce singur la RoomsSetup
+    context.go(homePath);
+  }
+
+  Future<void> _continueAsGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isGuest', true);
+
+    if (!mounted) return;
     context.go(homePath);
   }
 
@@ -265,6 +273,29 @@ class _logInViewState extends State<logInView> {
                             ),
                           ),
                         ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: _continueAsGuest,
+                    child: Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: AppColors.accent3, width: 2),
+                        color: Colors.white,
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Fortsett uten konto",
+                          style: TextStyle(
+                            color: AppColors.accent3,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

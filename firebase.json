@@ -24,7 +24,7 @@
   },
   "functions": [
     {
-      "source": "functions_main",
+      "source": "functions",
       "codebase": "main",
       "ignore": [
         "node_modules",
