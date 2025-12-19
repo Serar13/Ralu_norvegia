@@ -17,6 +17,7 @@ import 'package:ralu_norvegia/src/ui/screens/waintingForVerificationEdit.dart';
 import 'package:ralu_norvegia/src/ui/screens/welcome_view.dart';
 
 import '../ui/screens/choseOption_view.dart';
+import '../ui/screens/payWall.dart';
 import '../ui/screens/review_chose.dart';
 import '../ui/screens/roomsSetup_view.dart';
 import '../ui/screens/waitingForVerification_view.dart';
@@ -39,6 +40,7 @@ const String ChooseOptionPath = "/ChooseOption";
 const String ReviewChosePath = "/ReviewChose";
 const String RoomsSetupPath = "/RoomsSetup";
 const String onboardingPath = "/onboarding";
+const String payWallPath = "/payWall";
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
 GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -229,6 +231,21 @@ class AppRouter {
             ),
           );
         },
+      ),
+      GoRoute(
+        name: AppRoutes.payWallRoute,
+        path: payWallPath,
+        pageBuilder: (context, state) =>
+            CustomTransitionPage(
+              child: const PaywallView(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Define a fade transition
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
       ),
       GoRoute(
         name: AppRoutes.editProfileRoute,

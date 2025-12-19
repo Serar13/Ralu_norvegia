@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/screens/dailyItemDetails.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../app/app_router.dart';
 
 class dailyView extends StatefulWidget {
   final ValueNotifier<int> pointsNotifier;
@@ -17,7 +20,7 @@ class dailyView extends StatefulWidget {
 class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixin {
   Future<Map<String, bool>>? _tasksFuture;
   final List<Map<String, dynamic>> dailyItems = [];
-  final user = FirebaseAuth.instance.currentUser!;
+  final User? user = FirebaseAuth.instance.currentUser;
   bool _allTasksCompleted = false;
 
   // Fetch tasks from Firestore's "daily" collection
@@ -38,6 +41,10 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
   @override
   void initState() {
     super.initState();
+    if (user == null) {
+      _tasksFuture = Future.value({});
+      return;
+    }
     _checkAndResetForNewDay(); // Verificăm și resetăm dacă este o zi nouă
     getDocId();
     _tasksFuture = _fetchUserTasks();
@@ -134,6 +141,83 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 420),
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 56,
+                    color: AppColors.accent3,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Denne funksjonen er låst',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent3,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'For å bruke daglige oppgaver og lagre fremgangen din, må du opprette en konto eller logge inn.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent3,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => GoRouter.of(context).push(loginPath),
+                      child: const Text(
+                        'Gå til innlogging',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: Center(
@@ -325,7 +409,11 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
       );
 
       if (taskCompleted == true) {
-        _completeTask(item['title']);
+        await _completeTask(item['title']);
+
+        setState(() {
+          _tasksFuture = _fetchUserTasks();
+        });
       }
     }
   }

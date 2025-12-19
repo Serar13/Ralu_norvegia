@@ -23,10 +23,10 @@ const Map<String, Map<String, List<String>>> _TASKS_BY_ROOM_AND_CATEGORY = {
       'Vifte med filter',
       'Kjøleskap (inn/ut)',
       'Fryser',
-      'Kaffemaskin/elkoker',
+      'Vannkoker',
       'Benkeplate',
       'Skap og skuffer',
-      'Blandebatteri og vask',
+      'Blandebatteri og kjøkkenvask',
     ],
     'Gulv': [
       'Gulvlister',

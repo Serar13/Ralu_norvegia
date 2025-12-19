@@ -49,6 +49,7 @@ class _logInViewState extends State<logInView> {
 
           final User? user = userCredential.user;
           if (user != null) {
+            await _setLoggedInUser();
             await _postLoginRoute(); // migrare + lasă redirect-ul să decidă
           }
         }
@@ -151,12 +152,17 @@ class _logInViewState extends State<logInView> {
     context.go(homePath);
   }
 
+  Future<void> _setLoggedInUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isGuest', false);
+  }
+
   Future<void> _continueAsGuest() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isGuest', true);
 
     if (!mounted) return;
-    context.go(homePath);
+    context.push(payWallPath);
   }
 
   @override

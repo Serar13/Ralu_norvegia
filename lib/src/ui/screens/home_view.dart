@@ -23,13 +23,14 @@ class homeView extends StatefulWidget {
 }
 
 class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin {
-  final user = FirebaseAuth.instance.currentUser!;
+  final User? user = FirebaseAuth.instance.currentUser;
   late TabController _tabController;
   ValueNotifier<int> pointsNotifier = ValueNotifier<int>(0); // ValueNotifier to track points
   final ValueNotifier<DateTime?> _selectedDateNotifier = ValueNotifier<DateTime?>(null);
   ValueNotifier<int> streakNotifier = ValueNotifier<int>(0);
   bool _pulse = false;
   bool isLoading = true;
+  bool isGuest = false;
   bool _hasPulsedOnce = false;
 
   Future<void> _loadUserData() async {
@@ -43,12 +44,12 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
     }
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
       if (doc.exists) {
         int points = doc.data()?['points'] ?? 0;
         pointsNotifier.value = points;
 
-        final streak = await calculateStreak(user.uid);
+        final streak = await calculateStreak(user!.uid);
         streakNotifier.value = streak;
         await prefs.setInt('lastStreak', streak);
       } else {
@@ -74,7 +75,7 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       String? token = await messaging.getToken();
       if (token != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
           'fcmToken': token,
         }, SetOptions(merge: true));
       }
@@ -94,13 +95,50 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      isGuest = prefs.getBool('isGuest') ?? false;
+      if (!isGuest && user != null) {
+        _loadUserData();
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }();
     _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startSinglePulseOnce();
-      initNotifications(context);
+      if (!isGuest && user != null) {
+        initNotifications(context);
+      }
     });
+  }
+
+  void _showGuestLockDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Krever konto"),
+        content: const Text(
+          "For å låse opp denne delen av appen må du registrere deg eller logge inn.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Avbryt"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              GoRouter.of(context).go(loginPath);
+            },
+            child: const Text("Logg inn"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startSinglePulseOnce() async {
@@ -318,12 +356,16 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
           IconButton(
             icon: const Icon(Icons.calendar_today, color: AppColors.accentDark),
             onPressed: () async {
+              if (isGuest) {
+                _showGuestLockDialog();
+                return;
+              }
+
               final picked = await Navigator.of(context).push<DateTime>(
                 MaterialPageRoute(builder: (_) => const CalendarWeekView()),
               );
               if (picked != null) {
                 _selectedDateNotifier.value = picked;
-                // comută pe tab-ul Today
                 _tabController.index = 0;
               }
             },
@@ -331,6 +373,10 @@ class _homeViewState extends State<homeView> with SingleTickerProviderStateMixin
           IconButton(
             icon: const Icon(Icons.person, color: AppColors.accentDark),
             onPressed: () {
+              if (isGuest) {
+                _showGuestLockDialog();
+                return;
+              }
               GoRouter.of(context).push(userProfilePath);
             },
           ),

@@ -16,7 +16,7 @@ class TodayView extends StatefulWidget {
 }
 
 class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixin {
-  final user = FirebaseAuth.instance.currentUser!;
+  final User? user = FirebaseAuth.instance.currentUser;
 
   bool _loading = true;
   bool _hasLoadedOnce = false;
@@ -29,9 +29,12 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
   final List<List<String>> _tasksPerLocation = [];
   List<List<bool>> _isCheckedPerLocation = [];
 
+  bool _completionDialogShown = false;
+
   VoidCallback? _notifierListener;
 
   void _applyDate(DateTime date) {
+    _completionDialogShown = false;
     currentDay = _getDayFor(date);
     currentWeek = _getWeekFor(date);
     _loadTasksForDate(date);
@@ -136,7 +139,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
     final weekRef = FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
+        .doc(user!.uid)
         .collection('userProgress')
         .doc(weekKey);
 
@@ -150,7 +153,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
     final uke = _ukeFor(date);
     for (final dn in dayNames) {
       final legacy = await FirebaseFirestore.instance
-          .collection('users').doc(user.uid)
+          .collection('users').doc(user!.uid)
           .collection('weeklyTasks').doc(uke)
           .collection('days').doc(dn)
           .get();
@@ -197,7 +200,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
       final dayRef = FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(user!.uid)
           .collection('userProgress')
           .doc(currentWeek)
           .collection('days')
@@ -257,7 +260,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
   DocumentReference<Map<String, dynamic>> _locationDocRef(int locIdx) {
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
+        .doc(user!.uid)
         .collection('userProgress')
         .doc(currentWeek)
         .collection('days')
@@ -268,6 +271,11 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
   Future<void> _saveCheckboxState(int locIdx, int taskIdx, bool value) async {
     try {
+
+      if (!value) {
+        _completionDialogShown = false;
+      }
+
       final allTasksDoneForDay = _isCheckedPerLocation.isNotEmpty &&
           _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
 
@@ -306,17 +314,22 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       );
 
       // după orice schimbare recalculează streak-ul
-      final streak = await calculateStreak(user.uid);
+      final streak = await calculateStreak(user!.uid);
       widget.streakNotifier.value = streak;
 
       // dacă toate sunt bifate → dialog de confirmare
       final allDone = _isCheckedPerLocation.isNotEmpty &&
           _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
-      if (allDone) {
-        await _incrementStreak(); // actualizează în Firestore
-        final newStreak = await calculateStreak(user.uid); // recalculează pentru UI
+      if (allDone && !_completionDialogShown) {
+        _completionDialogShown = true;
+
+        await _incrementStreak();
+        final newStreak = await calculateStreak(user!.uid);
         widget.streakNotifier.value = newStreak;
-        _showCompletionDialog(context);
+
+        if (mounted) {
+          _showCompletionDialog(context);
+        }
       }
     } catch (e) {
       debugPrint('Error saving checkbox state: $e');
@@ -342,7 +355,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
     final today = DateTime.now();
     final todayKey = "${today.year}-${today.month}-${today.day}";
 
-    final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userRef = FirebaseFirestore.instance.collection('users').doc(user!.uid);
     final doc = await userRef.get();
 
     final data = doc.data();
@@ -601,33 +614,96 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
   // (rămâne neschimbat; doar mesajul menționează o singură locație dacă există exact una)
   void _showCompletionDialog(BuildContext context) {
     final singleLoc = (allLocations.length == 1) ? allLocations.first : null;
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Confirm Completion"),
-          content: Text(
-            singleLoc == null
-                ? "Are you sure you have finished all tasks for $currentDay?"
-                : "Are you sure you have finished all tasks for $singleLoc and completed the cleaning for $currentDay?",
+      barrierDismissible: false,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColors.accent3,
+                  size: 56,
+                ),
+                const SizedBox(height: 16),
+
+                const Text(
+                  "Bra jobba!",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  singleLoc == null
+                      ? "Du har fullført alle oppgavene for ${translateDay(currentDay)}."
+                      : "Du har fullført alle oppgavene i $singleLoc for ${translateDay(currentDay)}.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.primaryText2,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final streak = await calculateStreak(user!.uid);
+                      widget.streakNotifier.value = streak;
+
+                      Navigator.of(context).pop(); // 🔥 UN SINGUR POP
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Bra jobba! Du har fullført dagens rengjøring 🎉",
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Ferdig",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final streak = await calculateStreak(user.uid);
-                widget.streakNotifier.value = streak;
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Great! You finished cleaning for $currentDay!")),
-                );
-              },
-              child: const Text("Confirm"),
-            ),
-          ],
         );
       },
     );

@@ -178,12 +178,32 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
                         _completeTask(widget.title);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('All tasks completed!'),
-                            backgroundColor: Color(0xFFB9F6CA), // pastel green
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            content: Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Bra jobbet! Alle dagens oppgaver er fullført',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+                            backgroundColor: AppColors.accent3, // verdele tău
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.all(16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            duration: const Duration(seconds: 3),
                           ),
                         );
                       }

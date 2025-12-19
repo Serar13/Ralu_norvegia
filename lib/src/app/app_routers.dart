@@ -17,4 +17,5 @@ class AppRoutes {
   static const String ReviewChoseRoute = "ReviewChose";
   static const String RoomsSetupRoute = "RoomsSetup";
   static const String onBoardingRoute = "onBoarding";
+  static const String payWallRoute = "payWall";
 }

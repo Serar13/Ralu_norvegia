@@ -262,58 +262,65 @@ class _ReviewChoseState extends State<ReviewChose> {
         const SizedBox(height: 8),
 
         // Confirm button full-width, styled
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent3,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        SafeArea(
+          top: false,
+          bottom: true,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent3,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 2,
+                ),
+                onPressed: () async {
+                  setState(() { _isLoading = true; });
+                  try {
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    if (uid == null) return;
+
+                    await FirestoreBootstrap.saveWeeklyPlan(
+                      uid: uid,
+                      planWeeks: planWeeks,
+                      weekHeaders: weekHeaders,
+                      defaultTasksPerDay: defaultTasks,
+                    );
+
+                    await FirestoreBootstrap.resetCompletedTasks(
+                      uid: uid,
+                      planWeeks: planWeeks,
+                    );
+                    await FirestoreBootstrap.initializeUserProgress(
+                      uid: uid,
+                      planWeeks: planWeeks,
+                      weekHeaders: weekHeaders,
+                    );
+
+                    // Set hasCompletedSetup to true in user's document
+                    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+                      'hasCompletedSetup': true,
+                    }, SetOptions(merge: true));
+
+                    if (mounted) {
+                      context.go(homePath);
+                    }
+                  } finally {
+                    if (mounted) {
+                      setState(() { _isLoading = false; });
+                    }
+                  }
+                },
+                child: const Text(
+                  "Bekreft og opprett",
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
               ),
-              elevation: 2,
-            ),
-            onPressed: () async {
-              setState(() { _isLoading = true; });
-              try {
-                final uid = FirebaseAuth.instance.currentUser?.uid;
-                if (uid == null) return;
-
-                await FirestoreBootstrap.saveWeeklyPlan(
-                  uid: uid,
-                  planWeeks: planWeeks,
-                  weekHeaders: weekHeaders,
-                  defaultTasksPerDay: defaultTasks,
-                );
-
-                await FirestoreBootstrap.resetCompletedTasks(
-                  uid: uid,
-                  planWeeks: planWeeks,
-                );
-                await FirestoreBootstrap.initializeUserProgress(
-                  uid: uid,
-                  planWeeks: planWeeks,
-                  weekHeaders: weekHeaders,
-                );
-
-                // Set hasCompletedSetup to true in user's document
-                await FirebaseFirestore.instance.collection('users').doc(uid).set({
-                  'hasCompletedSetup': true,
-                }, SetOptions(merge: true));
-
-                if (mounted) {
-                  context.go(homePath);
-                }
-              } finally {
-                if (mounted) {
-                  setState(() { _isLoading = false; });
-                }
-              }
-            },
-            child: const Text(
-              "Bekreft og opprett",
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
           ),
         ),
