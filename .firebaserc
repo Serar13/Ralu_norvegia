@@ -2,6 +2,16 @@
   "projects": {
     "default": "ralunorvegia"
   },
-  "targets": {},
-  "etags": {}
+  "targets": {
+    "ralunorvegia": {
+      "hosting": {
+        "site": [
+          "ralunorvegia"
+        ],
+        "webadmin": [
+          "ralunorvegia-admin"
+        ]
+      }
+    }
+  }
 }
