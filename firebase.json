@@ -5,11 +5,11 @@
         "default": {
           "projectId": "ralunorvegia",
           "appId": "1:775850665665:android:bd99a46ca9a39f6af7d640",
-          "fileOutput": "android/app/google-services.json"
+          "fileOutput": "app/android/app/google-services.json"
         }
       },
       "dart": {
-        "lib/firebase_options.dart": {
+        "app/lib/firebase_options.dart": {
           "projectId": "ralunorvegia",
           "configurations": {
             "android": "1:775850665665:android:bd99a46ca9a39f6af7d640",

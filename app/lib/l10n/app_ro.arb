@@ -1,0 +1,53 @@
+{
+  "@@locale": "ro",
+  "app_title": "Ralu",
+  "@app_title": {
+    "description": "App title"
+  },
+  "list_item_done_ago": "done {when}",
+  "@list_item_done_ago": {
+    "description": "Small caps date when item was marked as done.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "a minute ago"
+      }
+    }
+  },
+  "welcome": "Velkomst til",
+  "@welcome":{
+    "bineAiVenit":"Velkomst til"
+  },
+  "userName": "Username",
+  "@userName":{
+    "description":"Username"
+  },
+  "passWord": "Password",
+  "@passWord":{
+    "description":"Password"
+  },
+  "userEmail": "User email",
+  "@userEmail":{
+    "description":"User email"
+  },
+  "userPhone": "User phone",
+  "@userPhone":{
+    "description":"User phone"
+  },
+  "passWordVerification": "Password verify",
+  "@passWordVerification":{
+    "description":"Password verify"
+  },
+  "restaurantName": "Restaurant name",
+  "@restaurantName":{
+    "description":"Restaurant name"
+  },
+  "comandaMinima": "Minimum price for order",
+  "@comandaMinima":{
+    "description":"Minimum price for order"
+  },
+  "timeOpen": "Schedule",
+  "@timeOpen":{
+    "description":"Schedule"
+  }
+}
