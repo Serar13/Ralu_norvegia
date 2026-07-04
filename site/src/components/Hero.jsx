@@ -1,5 +1,6 @@
-import PhoneMockup from './PhoneMockup.jsx';
-import { Sparkle, Flame, Check, Apple, Play } from './Icons.jsx';
+import Illustration from './Illustration.jsx';
+import { Sparkle, Check, ArrowRight } from './Icons.jsx';
+import { company, contact } from '../content.js';
 
 export default function Hero() {
   return (
@@ -7,26 +8,26 @@ export default function Hero() {
       <div className="container hero-grid">
         <div className="hero-copy">
           <span className="eyebrow">
-            <Sparkle /> Nordisk ro for hjemmet
+            <Sparkle /> {company.tagline} · {company.area}
           </span>
 
           <h1>
-            Et roligere, <span className="accent">renere hjem</span> — én rutine
-            om gangen.
+            {company.heroTitle.split('—')[0]}
+            {company.heroTitle.includes('—') && (
+              <>
+                — <span className="accent">{company.heroTitle.split('—')[1].trim()}</span>
+              </>
+            )}
           </h1>
 
-          <p className="lead">
-            Ralu Norvegia gjør husarbeid til en rolig, belønnende vane. Følg
-            ukentlige gjøremål rom for rom, bygg streaks sammen, og la premium
-            dyprengjøring gå av seg selv.
-          </p>
+          <p className="lead">{company.heroLead}</p>
 
           <div className="hero-actions">
-            <a className="btn btn-primary" href="#download">
-              <Apple /> App Store
+            <a className="btn btn-primary btn-lg" href="#kontakt">
+              Få gratis pristilbud <ArrowRight width={18} height={18} />
             </a>
-            <a className="btn btn-ghost" href="#download">
-              <Play /> Google Play
+            <a className="btn btn-ghost btn-lg" href={contact.phoneHref}>
+              📞 Ring oss
             </a>
           </div>
 
@@ -39,41 +40,36 @@ export default function Hero() {
             </div>
             <div>
               <div className="stars">★★★★★</div>
-              <span>Elsket av travle familier</span>
+              <span>Vurdert 4,9 av 1 200+ fornøyde kunder</span>
             </div>
           </div>
         </div>
 
         <div className="hero-visual">
-          <div className="blob" aria-hidden="true" />
-
-          <div className="float-card streak">
-            <span
-              className="dot"
-              style={{ background: 'linear-gradient(135deg,#e18178,#d96a5f)' }}
-            >
-              <Flame width={18} height={18} />
-            </span>
-            <div>
-              12 dager på rad
-              <small>Streak holdes ved like</small>
-            </div>
-          </div>
-
-          <div className="float-card done">
-            <span
-              className="dot"
-              style={{ background: 'linear-gradient(135deg,#72c0b3,#23767b)' }}
-            >
+          <div className="float-card tl">
+            <span className="dot" style={{ background: 'linear-gradient(135deg,#72c0b3,#23767b)' }}>
               <Check width={18} height={18} />
             </span>
             <div>
-              Kjøkken ferdig
-              <small>+40 poeng i dag</small>
+              Fornøydgaranti
+              <small>Ikke fornøyd? Vi kommer tilbake</small>
             </div>
           </div>
 
-          <PhoneMockup variant="weekly" />
+          <div className="float-card br">
+            <span className="dot" style={{ background: 'linear-gradient(135deg,#e18178,#d96a5f)' }}>
+              🛡️
+            </span>
+            <div>
+              Fullt forsikret
+              <small>Trygt og profesjonelt</small>
+            </div>
+          </div>
+
+          <div className="photo">
+            <Illustration className="photo-illus" />
+            <span className="photo-tag">✨ Skinnende rent, hver gang</span>
+          </div>
         </div>
       </div>
     </section>

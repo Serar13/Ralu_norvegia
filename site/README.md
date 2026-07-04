@@ -1,10 +1,24 @@
-# Ralu Norvegia — Landing site (`/site`)
+# Ralu Norvegia — Business site (`/site`)
 
-The public presentation website for the **Ralu Norvegia** household organization
-& premium cleaning app. Built with **React + Vite**, styled to match the mobile
-app (Kanit typography, pastel Nordic palette, soft rounded shapes).
+The public **cleaning-services** website for **Ralu Norvegia** (premium renhold
+in Oslo og omegn). It sells the team's services — fast vaskehjelp, engangsvask,
+flyttevask, hovedrengjøring, kontorvask, vindusvask — with pricing, reviews and
+a booking form. The mobile app is featured as one supporting section, not the
+whole story. Built with **React + Vite**, styled to match the app (Kanit
+typography, pastel Nordic palette, soft rounded shapes).
 
 Deployed to the Firebase Hosting target **`site`** → `https://ralunorvegia.web.app`.
+
+## ✏️ Editing the content — start here
+
+**All business copy lives in [`src/content.js`](./src/content.js)** — company
+info, contact details, services, prices, testimonials and stats. Update that one
+file to plug in the real values; the components read from it. Values marked
+`TODO:` are placeholders (phone, e-mail, org.nr, prices, reviews) to replace
+before going live.
+
+Real photos go in [`public/images/`](./public/images/README.md) — drop them in
+and reference `/images/...`, or swap the hero `Illustration` for a photograph.
 
 ## Structure
 
@@ -13,18 +27,29 @@ site/
 ├─ index.html            # entry HTML, loads Kanit from Google Fonts
 ├─ vite.config.js        # build → dist/, vendor chunk splitting
 ├─ .env.example          # Firebase web keys (copy to .env)
-├─ public/favicon.svg
+├─ public/
+│  ├─ favicon.svg
+│  └─ images/            # drop real photos here
 └─ src/
    ├─ main.jsx           # React root + optional Analytics init
+   ├─ content.js         # ← ALL editable business copy & prices
    ├─ App.jsx            # section composition
    ├─ firebase.js        # Firebase connection helper (env-driven)
    ├─ styles/index.css   # design system (tokens + component styles)
    └─ components/
-      ├─ Navbar.jsx  Hero.jsx  Features.jsx  Showcase.jsx
-      ├─ HowItWorks.jsx  CTA.jsx  Footer.jsx
-      ├─ PhoneMockup.jsx # in-browser rendering of the app screens
-      └─ Icons.jsx       # inline SVG icons
+      ├─ Navbar.jsx  Hero.jsx  TrustBar.jsx  Services.jsx  Pricing.jsx
+      ├─ HowItWorks.jsx  Stats.jsx  AppSection.jsx  Testimonials.jsx
+      ├─ Contact.jsx  CTA.jsx  Footer.jsx
+      ├─ Illustration.jsx # hero vector art (swap for a photo)
+      ├─ PhoneMockup.jsx  # in-browser rendering of the app screen
+      └─ Icons.jsx        # inline SVG icons
 ```
+
+## Booking form
+
+`Contact.jsx` composes a pre-filled `mailto:` to `contact.email` on submit — it
+works with **no backend**. Swap it for a Firestore write or a form service
+(Formspree, etc.) when you want submissions stored server-side.
 
 ## Local development
 

@@ -1,21 +1,21 @@
-import { Apple, Play } from './Icons.jsx';
+import { contact } from '../content.js';
 
 export default function CTA() {
   return (
-    <section className="cta" id="download">
+    <section className="cta">
       <div className="container">
         <div className="cta-card">
-          <h2>Klar for et roligere hjem?</h2>
+          <h2>Klar for et skinnende rent hjem?</h2>
           <p>
-            Bli med familiene som gjør husarbeid til en delt, belønnende vane.
-            Last ned Ralu Norvegia og start streaken din i dag.
+            Book fast vaskehjelp, engangsvask eller flyttevask i dag. Uforpliktende
+            tilbud og 100 % fornøydgaranti.
           </p>
           <div className="cta-actions">
-            <a className="btn btn-white" href="#">
-              <Apple /> Last ned for iOS
+            <a className="btn btn-white btn-lg" href="#kontakt">
+              Få gratis pristilbud
             </a>
-            <a className="btn btn-outline-white" href="#">
-              <Play /> Hent på Google Play
+            <a className="btn btn-outline-white btn-lg" href={contact.phoneHref}>
+              📞 {contact.phone}
             </a>
           </div>
         </div>

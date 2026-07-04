@@ -1,32 +1,19 @@
-const STEPS = [
-  {
-    title: 'Sett opp hjemmet ditt',
-    text: 'Legg til rommene dine og velg ukesmalen som passer. Vi starter deg med gjennomtenkte nordiske rutiner.',
-  },
-  {
-    title: 'Del og fullfør',
-    text: 'Fordel gjøremål i husstanden. Kryss av oppgaver rom for rom og se poengene vokse.',
-  },
-  {
-    title: 'Bygg streaken',
-    text: 'Hold flammen i live dag for dag. Periodisk dyprengjøring dukker opp automatisk til rett tid.',
-  },
-];
+import { steps } from '../content.js';
 
 export default function HowItWorks() {
   return (
-    <section className="how" id="how">
+    <section className="how" id="slik">
       <div className="container">
         <div className="section-head">
-          <span className="eyebrow">Slik virker det</span>
-          <h2>Fra kaos til rutine på tre steg</h2>
-          <p>Ingen kompliserte oppsett — bare en rolig rytme hjemmet ditt kan holde.</p>
+          <span className="eyebrow">Slik funker det</span>
+          <h2>Rent hjem i tre enkle steg</h2>
+          <p>Book på under ett minutt — så tar vi oss av resten.</p>
         </div>
 
         <div className="steps">
-          {STEPS.map((s) => (
+          {steps.map((s) => (
             <article className="step" key={s.title}>
-              <div className="num" aria-hidden="true" />
+              <div className="s-emoji" aria-hidden="true">{s.icon}</div>
               <h3>{s.title}</h3>
               <p>{s.text}</p>
             </article>
