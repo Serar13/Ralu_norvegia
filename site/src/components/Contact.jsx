@@ -6,29 +6,26 @@ export default function Contact() {
     name: '',
     phone: '',
     email: '',
-    address: '',
-    service: services[0]?.name ?? '',
+    subject: services[0]?.name ?? 'Generelt spørsmål',
     message: '',
   });
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  // With no backend, the form composes a pre-filled e-mail to the company.
-  // Swap this for a Firestore write or a form service (Formspree, etc.) later.
+  // With no backend, the form composes a pre-filled e-mail.
   function handleSubmit(e) {
     e.preventDefault();
-    const subject = `Forespørsel om ${form.service} — ${form.name}`;
+    const mailSubject = `Henvendelse: ${form.subject} — ${form.name}`;
     const body = [
       `Navn: ${form.name}`,
       `Telefon: ${form.phone}`,
       `E-post: ${form.email}`,
-      `Adresse: ${form.address}`,
-      `Tjeneste: ${form.service}`,
+      `Henvendelse gjelder: ${form.subject}`,
       '',
       form.message,
     ].join('\n');
     window.location.href = `mailto:${contact.email}?subject=${encodeURIComponent(
-      subject,
+      mailSubject,
     )}&body=${encodeURIComponent(body)}`;
   }
 
@@ -37,14 +34,14 @@ export default function Contact() {
       <div className="container">
         <div className="section-head">
           <span className="eyebrow">Kontakt</span>
-          <h2>Få et gratis, uforpliktende tilbud</h2>
-          <p>Fyll ut skjemaet, så tar vi kontakt innen kort tid med et tilbud tilpasset deg.</p>
+          <h2>Har du spørsmål? Ta kontakt</h2>
+          <p>Har du spørsmål om appen, nettbutikken eller de gratis vaskeplanene? Fyll ut skjemaet under så svarer vi deg så fort som mulig.</p>
         </div>
 
         <div className="contact-card">
           <div className="contact-info">
             <h3>Snakk med oss</h3>
-            <p>Vi svarer gjerne på spørsmål om tjenester, priser og ledige tider.</p>
+            <p>Vi vil gjerne høre fra deg om du har tilbakemeldinger eller spørsmål.</p>
 
             <div className="contact-list">
               <a href={contact.phoneHref}>
@@ -58,14 +55,14 @@ export default function Contact() {
                 <span className="c-ic" aria-hidden="true">✉️</span>
                 <span>
                   {contact.email}
-                  <small>Svar innen 24 timer</small>
+                  <small>Svar innen kort tid</small>
                 </span>
               </a>
               <span>
                 <span className="c-ic" aria-hidden="true">📍</span>
                 <span>
                   {company.area}
-                  <small>Vi kommer til deg</small>
+                  <small>Tilgjengelig over hele landet</small>
                 </span>
               </span>
             </div>
@@ -88,23 +85,18 @@ export default function Contact() {
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="field">
-                <label htmlFor="c-email">E-post</label>
-                <input id="c-email" type="email" value={form.email} onChange={update('email')} placeholder="deg@epost.no" />
-              </div>
-              <div className="field">
-                <label htmlFor="c-address">Adresse</label>
-                <input id="c-address" value={form.address} onChange={update('address')} placeholder="Gate 1, 0000 Oslo" />
-              </div>
+            <div className="field">
+              <label htmlFor="c-email">E-post</label>
+              <input id="c-email" type="email" required value={form.email} onChange={update('email')} placeholder="deg@epost.no" />
             </div>
 
             <div className="field">
-              <label htmlFor="c-service">Tjeneste</label>
-              <select id="c-service" value={form.service} onChange={update('service')}>
+              <label htmlFor="c-subject">Hva gjelder henvendelsen?</label>
+              <select id="c-subject" value={form.subject} onChange={update('subject')}>
                 {services.map((s) => (
-                  <option key={s.id} value={s.name}>{s.name} — {s.price}</option>
+                  <option key={s.id} value={s.name}>{s.name}</option>
                 ))}
+                <option value="Generell henvendelse">Generell henvendelse / annet</option>
               </select>
             </div>
 
@@ -112,19 +104,21 @@ export default function Contact() {
               <label htmlFor="c-message">Melding</label>
               <textarea
                 id="c-message"
+                required
                 value={form.message}
                 onChange={update('message')}
-                placeholder="Fortell oss om boligen din, størrelse, ønsket frekvens…"
+                placeholder="Skriv meldingen din her..."
               />
             </div>
 
             <button className="btn btn-primary btn-lg" type="submit" style={{ width: '100%' }}>
-              Send forespørsel
+              Send melding
             </button>
-            <p className="form-note">Vi bruker aldri opplysningene dine til noe annet enn å svare deg.</p>
+            <p className="form-note">Vi deler aldri opplysningene dine med tredjeparter.</p>
           </form>
         </div>
       </div>
     </section>
   );
 }
+

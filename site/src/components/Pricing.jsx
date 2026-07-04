@@ -6,9 +6,9 @@ export default function Pricing() {
     <section className="pricing" id="priser">
       <div className="container">
         <div className="section-head">
-          <span className="eyebrow">Priser</span>
-          <h2>Tydelige, forutsigbare priser</h2>
-          <p>Ingen skjulte kostnader. Velg frekvensen som passer deg — bytt eller pause når som helst.</p>
+          <span className="eyebrow">Priser & Pakker</span>
+          <h2>Velg det som passer deg best</h2>
+          <p>Vi tilbyr både gratis ressurser, en smart mobilapp og komplette utstyrspakker for din husvask.</p>
         </div>
 
         <div className="price-grid">

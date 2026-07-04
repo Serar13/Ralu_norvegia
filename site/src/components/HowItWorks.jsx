@@ -7,7 +7,7 @@ export default function HowItWorks() {
         <div className="section-head">
           <span className="eyebrow">Slik funker det</span>
           <h2>Rent hjem i tre enkle steg</h2>
-          <p>Book på under ett minutt — så tar vi oss av resten.</p>
+          <p>Kom i gang med gode rengjøringsvaner på en-to-tre.</p>
         </div>
 
         <div className="steps">

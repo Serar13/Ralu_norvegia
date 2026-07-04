@@ -6,11 +6,11 @@ export default function Services() {
     <section className="services" id="tjenester">
       <div className="container">
         <div className="section-head">
-          <span className="eyebrow">Tjenester</span>
-          <h2>Renhold for hvert behov</h2>
+          <span className="eyebrow">Produkter & Tjenester</span>
+          <h2>Renhold gjort enkelt</h2>
           <p>
-            Fra jevnlig vaskehjelp til grundig flyttevask — vi tilpasser oss deg,
-            hjemmet ditt og bedriften din.
+            Alt du trenger for et renere hjem — fra smarte digitale verktøy til
+            profesjonelt utstyr og guider.
           </p>
         </div>
 
