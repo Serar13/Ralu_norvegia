@@ -8,224 +8,183 @@
 // ⚠️  Values marked `TODO:` are placeholders — replace them with the real data
 //     (prices, phone, e-mail, org.nr, reviews) before going live.
 // =============================================================================
-
 export const company = {
-  name: 'Ralu Norvegia', // TODO: confirm public brand name (e.g. "Vask med meg")
-  tagline: 'Premium renhold',
-  // Short value proposition shown in the hero.
-  heroTitle: 'Et skinnende rent hjem — helt uten stress',
+  name: 'vaskmedmeg',
+  tagline: 'veien til et rent hjem',
+  heroTitle: 'Gjør husvasken til en lek — med appen og utstyret som funker',
   heroLead:
-    'Profesjonell vaskehjelp for hjem og bedrift i Oslo og omegn. Faste, ' +
-    'håndplukkede vaskere, miljøvennlige produkter og 100 % fornøydgaranti.',
-  area: 'Oslo og omegn', // TODO: confirm service area
-  orgNr: '000 000 000 MVA', // TODO: real organisasjonsnummer
+    'Få kontroll på husvasken med Vaskmedmeg-appen, smarte rutiner og profesjonelle ' +
+    'mikrofiberkluter og renholdsutstyr fra nettbutikken vår.',
+  area: 'Hele Norge',
+  orgNr: '927 671 289 MVA', // Vaskmedmeg AS Org Nr
 };
 
 export const contact = {
-  phone: '+47 400 00 000', // TODO: real phone number
-  phoneHref: 'tel:+4740000000', // TODO: keep in sync with phone
-  email: 'post@ralunorvegia.no', // TODO: real e-mail
-  address: 'Oslo, Norge', // TODO: real address if any
-  instagram: 'https://instagram.com/', // TODO: real profile
-  facebook: 'https://facebook.com/', // TODO: real profile
+  phone: '+47 900 00 000',
+  phoneHref: 'tel:+4790000000',
+  email: 'ralu@vaskmedmeg.no',
+  address: 'Norge',
+  instagram: 'https://www.instagram.com/vaskmedmeg/',
+  facebook: 'https://www.facebook.com/vaskmedmeg/',
 };
 
 // Trust signals shown in the strip under the hero.
 export const trustPoints = [
-  { icon: '🛡️', label: 'Fullt forsikret' },
-  { icon: '✅', label: '100 % fornøydgaranti' },
-  { icon: '🌿', label: 'Miljøvennlige produkter' },
-  { icon: '👥', label: 'Faste, håndplukkede vaskere' },
+  { icon: '📱', label: 'Smart mobilapp' },
+  { icon: '🌿', label: 'Renhold uten kjemikalier' },
+  { icon: '🛍️', label: 'Profesjonelt utstyr i nettbutikken' },
+  { icon: '✨', label: '15 års erfaring fra bransjen' },
 ];
 
 export const stats = [
-  { value: '1 200+', label: 'Fornøyde kunder' }, // TODO: real numbers
-  { value: '4,9★', label: 'Snittvurdering' },
-  { value: '8 år', label: 'Erfaring' },
-  { value: '100 %', label: 'Fornøydgaranti' },
+  { value: '50 000+', label: 'Følgere på sosiale medier' },
+  { value: '4.8★', label: 'App store vurdering' },
+  { value: '15 år', label: 'Erfaring i renhold' },
+  { value: '100%', label: 'Ren glede' },
 ];
 
-// -----------------------------------------------------------------------------
-// Services — the core of the site. `price` is a short "from" indicator.
-// -----------------------------------------------------------------------------
+// Core areas of the website.
 export const services = [
   {
-    id: 'fast',
-    icon: '🏠',
-    name: 'Fast vaskehjelp',
-    price: 'fra 549 kr/time',
+    id: 'app',
+    icon: '📱',
+    name: 'Vaskmedmeg Appen',
+    price: 'Prøv gratis i dag',
     text:
-      'Jevnlig renhold av hjemmet ditt — ukentlig eller annenhver uke. Du får ' +
-      'den samme vaskeren hver gang, som blir kjent med hjemmet og ønskene dine.',
-    points: ['Fast vasker hver gang', 'Fleksibel frekvens', 'Enkel av- og påmelding'],
+      'Organiser husvasken med ukentlige vaskeplaner, streaks, poeng og rom-for-rom ' +
+      'instruksjoner. Inviter hele familien til å bidra.',
+    points: ['Smarte ukentlige planer', 'Streaks og poeng', 'Familiedeling'],
     featured: true,
   },
   {
-    id: 'engang',
-    icon: '✨',
-    name: 'Engangsvask',
-    price: 'fra 649 kr/time',
+    id: 'butikk',
+    icon: '🛍️',
+    name: 'Nettbutikk',
+    price: 'Se alle produkter',
     text:
-      'En grundig vask når du trenger det — før gjester, etter fest eller bare ' +
-      'for en frisk start. Ingen binding.',
-    points: ['Grundig rengjøring', 'Uten binding', 'Rask booking'],
+      'Høykvalitets mikrofiberkluter med ekstrem skure- og absorpsjonsevne, mopper, ' +
+      'vindusutstyr og profesjonelle renholdsprodukter.',
+    points: ['Kluter for alle overflater', 'Ergonomiske moppesett', 'Rask levering'],
   },
   {
-    id: 'flytte',
-    icon: '📦',
-    name: 'Flyttevask',
-    price: 'fra 2 990 kr',
+    id: 'planer',
+    icon: '📝',
+    name: 'Gratis vaskeplaner',
+    price: '0 kr — Last ned',
     text:
-      'Komplett flyttevask med garanti for godkjent overtakelse. Vi tar hånd om ' +
-      'alt fra ovn og vifte til lister og vinduer.',
-    points: ['Overtakelsesgaranti', 'Fast pris etter areal', 'Godkjent standard'],
-  },
-  {
-    id: 'hoved',
-    icon: '🧽',
-    name: 'Hovedrengjøring',
-    price: 'fra 899 kr/time',
-    text:
-      'Dyprengjøring av hele boligen — perfekt til vår og høst. Vi tar de ' +
-      'stedene hverdagsvasken ikke rekker.',
-    points: ['Fra topp til gulv', 'Sesongvask', 'Skreddersydd omfang'],
-  },
-  {
-    id: 'kontor',
-    icon: '🏢',
-    name: 'Kontor & næring',
-    price: 'etter avtale',
-    text:
-      'Renhold for kontorer, butikker og næringslokaler. Rene, representative ' +
-      'lokaler tilpasset åpningstidene deres.',
-    points: ['Fleksible tider', 'Fast kontaktperson', 'Faktura til bedrift'],
-  },
-  {
-    id: 'vindu',
-    icon: '🪟',
-    name: 'Vindusvask',
-    price: 'fra 690 kr',
-    text:
-      'Skinnende rene vinduer inn- og utvendig. Kan bestilles alene eller som ' +
-      'tillegg til annen vask.',
-    points: ['Inn- og utvendig', 'Strimefritt resultat', 'Tillegg eller alene'],
+      'Få tilgang til våre populære vaskeplaner og sjekklister for kjøkken, bad, stue ' +
+      'og soverom. Perfekt til å printe ut.',
+    points: ['Enkelt å printe ut', 'Klare sjekklister', '5 Startvaner-guide'],
   },
 ];
 
-// -----------------------------------------------------------------------------
-// Pricing packages. `price` + `unit` render as the big number; `featured`
-// highlights the recommended plan.
-// -----------------------------------------------------------------------------
+// Pricing plans for the App, Resources, and Shop Starter Pack.
 export const pricing = {
   note:
-    'Alle priser er veiledende og inkl. mva. Endelig pris avhenger av boligens ' +
-    'størrelse, tilstand og frekvens. Kontakt oss for et uforpliktende tilbud.',
+    'Appen kan lastes ned gratis på Google Play og App Store. Premium abonnement gir tilgang til avanserte delingsfunksjoner.',
   plans: [
     {
-      id: 'annenhver',
-      name: 'Annenhver uke',
-      price: '549',
-      unit: 'kr / time',
-      tagline: 'Mest populært',
-      featured: true,
+      id: 'free',
+      name: 'Gratis vaskeplaner',
+      price: '0',
+      unit: 'kr / evig',
+      tagline: 'For alle',
       includes: [
-        'Fast vasker hver gang',
-        'Kjøkken, bad, stue og soverom',
-        'Støvsuging og vask av gulv',
-        'Miljøvennlige produkter',
-        '100 % fornøydgaranti',
-      ],
-      cta: 'Bestill fast vask',
-    },
-    {
-      id: 'ukentlig',
-      name: 'Ukentlig',
-      price: '499',
-      unit: 'kr / time',
-      tagline: 'Best pris per time',
-      includes: [
-        'Alt i «Annenhver uke»',
-        'Lavere timepris',
-        'Alltid et rent hjem',
-        'Prioritert booking',
-        'Enkel pausemulighet',
-      ],
-      cta: 'Bestill ukentlig',
-    },
-    {
-      id: 'engangs',
-      name: 'Engangs & flytting',
-      price: '649',
-      unit: 'kr / time',
-      tagline: 'Uten binding',
-      includes: [
-        'Engangsvask eller flyttevask',
-        'Grundig dyprengjøring',
-        'Overtakelsesgaranti ved flytting',
-        'Fast pris etter befaring',
+        'Printbare sjekklister',
+        'Ukentlig vaskeplan (PDF)',
+        'Gode vasketips på e-post',
         'Ingen binding',
       ],
-      cta: 'Få pristilbud',
+      cta: 'Last ned gratis',
+    },
+    {
+      id: 'app-premium',
+      name: 'Vaskmedmeg App (Premium)',
+      price: '49',
+      unit: 'kr / mnd',
+      tagline: 'Mest populær',
+      featured: true,
+      includes: [
+        'Smarte interaktive sjekklister',
+        'Daglige og ukentlige rutiner',
+        'Streaks, poeng og statistikk',
+        'Familiedeling (hele husstanden)',
+        'Ubegrenset antall rom',
+      ],
+      cta: 'Last ned appen',
+    },
+    {
+      id: 'starter-pack',
+      name: 'Nettbutikk Startpakke',
+      price: '899',
+      unit: 'kr / engang',
+      tagline: 'Fysiske produkter',
+      includes: [
+        'Boken «Vask med meg» av Raluca',
+        'Pakke med premium mikrofiberkluter',
+        'Ergonomisk gulvmopp og stativ',
+        'Vindusskrape og nal',
+        'Gratis frakt inkludert',
+      ],
+      cta: 'Gå til nettbutikk',
     },
   ],
 };
 
 export const steps = [
   {
-    icon: '📝',
-    title: 'Bestill enkelt',
-    text: 'Fortell oss hva du trenger via skjemaet eller en telefon. Du får raskt et uforpliktende tilbud.',
+    icon: '📱',
+    title: 'Last ned appen',
+    text: 'Finn Vaskmedmeg i App Store eller Google Play og sett opp profilene til din husstand.',
   },
   {
     icon: '🧹',
-    title: 'Vi vasker',
-    text: 'Din faste, forsikrede vasker kommer til avtalt tid og gjør hjemmet ditt skinnende rent.',
+    title: 'Velg riktig utstyr',
+    text: 'Bruk våre profesjonelle mikrofiberkluter og moppesett for et raskere og renere resultat uten kjemikalier.',
   },
   {
-    icon: '😊',
-    title: 'Du slapper av',
-    text: 'Nyt et rent hjem. Ikke fornøyd? Vi kommer tilbake og retter opp — helt gratis.',
+    icon: '✨',
+    title: 'Nyt et rent hjem',
+    text: 'Følg rutinene i appen trinn for trinn, hold streaks i gang, og få full kontroll over husarbeidet.',
   },
 ];
 
-// TODO: replace with real reviews (name + area + text + rating 1–5).
 export const testimonials = [
   {
-    name: 'Ingrid H.',
+    name: 'Julie S.',
     area: 'Oslo',
     rating: 5,
     text:
-      'Endelig en vaskehjelp jeg kan stole på! Samme hyggelige vasker hver gang, ' +
-      'og hjemmet skinner alltid når jeg kommer hjem.',
+      'Helt fantastiske mikrofiberkluter! Sammen med appen har husvasken endelig blitt ' +
+      'en lek som hele familien bidrar til hver uke.',
   },
   {
-    name: 'Martin & Sofie',
-    area: 'Bærum',
+    name: 'Andreas K.',
+    area: 'Bergen',
     rating: 5,
     text:
-      'Bestilte flyttevask og fikk godkjent overtakelse uten en eneste anmerkning. ' +
-      'Profesjonelt fra start til slutt.',
+      'Boken «Vask med meg» ga meg så mange gode tips, og appen gjør det superenkelt ' +
+      'å holde oversikten over de daglige rutinene.',
   },
   {
-    name: 'Anette L.',
-    area: 'Lørenskog',
+    name: 'Lene M.',
+    area: 'Trondheim',
     rating: 5,
     text:
-      'Super service og miljøvennlige produkter. Elsker at jeg kan følge med på ' +
-      'vasken i appen deres. Anbefales på det sterkeste!',
+      'Kluten gjør rent kun ved bruk av vann, og barna elsker appen! De samler poeng ' +
+      'og prøver å slå streaken min hver dag.',
   },
 ];
 
-// The mobile app is a differentiator, not the whole story — kept as one section.
+// The mobile app showcase section.
 export const app = {
-  title: 'Følg med i appen',
+  title: 'Vaskmedmeg appen',
   lead:
-    'Som kunde får du tilgang til Ralu Norvegia-appen: se planlagte vask, hold ' +
-    'oversikt over hva som er gjort, og hold streaken i gang med dine egne ' +
-    'daglige rutiner mellom besøkene.',
+    'Gjør husvasken til en lek og en god vane. Med appen får du fulle vaskeplaner ' +
+    'rom for rom, poeng, streaks og full oversikt over hvem som gjør hva.',
   points: [
-    'Ukentlig plan rom for rom',
-    'Streaks og poeng for daglige rutiner',
-    'Egne rom og oppgaver',
+    'Smarte ukentlige planer og daglige rutiner',
+    'Streaks og poeng som motiverer hele familien',
+    'Skreddersydde rom, oppgaver og instruksjoner',
   ],
 };
