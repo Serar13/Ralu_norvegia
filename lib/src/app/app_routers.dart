@@ -18,4 +18,8 @@ class AppRoutes {
   static const String RoomsSetupRoute = "RoomsSetup";
   static const String onBoardingRoute = "onBoarding";
   static const String payWallRoute = "payWall";
+  static const String profileSelectionRoute = "profileSelection";
+  static const String createProfileRoute = "createProfile";
+  static const String delegateTasksRoute = "delegateTasks";
+  static const String myTasksRoute = "myTasks";
 }

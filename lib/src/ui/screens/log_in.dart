@@ -7,6 +7,8 @@ import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/widgets/validators.dart';
 import 'package:ralu_norvegia/src/ui/widgets/widget_factory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ralu_norvegia/src/service/profile_service.dart';
+import 'package:ralu_norvegia/src/service/auth_service.dart';
 
 class logInView extends StatefulWidget {
   const logInView({super.key});
@@ -20,6 +22,7 @@ class _logInViewState extends State<logInView> {
   final _passwordController = TextEditingController();
   bool passToggle = true;
   bool _isLoading = false;
+  bool _isFbLoading = false;
   final formFieldKey = GlobalKey<FormState>();
 
   get userId => "0";
@@ -28,6 +31,35 @@ class _logInViewState extends State<logInView> {
     setState(() {
       passToggle = !passToggle;
     });
+  }
+
+  Future<void> _loginWithFacebook() async {
+    if (_isFbLoading) return;
+    setState(() {
+      _isFbLoading = true;
+    });
+    try {
+      final userCredential = await AuthService.signInWithFacebook();
+      if (userCredential != null) {
+        await _setLoggedInUser();
+        await _postLoginRoute();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Facebook login feilet: $e'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFbLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _logIn() async {
@@ -119,15 +151,19 @@ class _logInViewState extends State<logInView> {
   Future<void> _postLoginRoute() async {
     final u = FirebaseAuth.instance.currentUser;
     if (u == null) return;
+    bool isSetupDone = false;
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(u.uid)
           .get();
-      final setupDone = (userDoc.data()?['setupDone'] == true);
+      final data = userDoc.data();
+      if (data != null) {
+        isSetupDone = (data['hasCompletedSetup'] == true) || (data['setupDone'] == true);
+      }
 
       // Migrare: dacă userul are deja weeklyTasks (legacy) dar setupDone e fals, îl setăm true
-      if (!setupDone) {
+      if (!isSetupDone) {
         final luniDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(u.uid)
@@ -137,10 +173,11 @@ class _logInViewState extends State<logInView> {
             .doc('Luni')
             .get();
         if (luniDoc.exists) {
+          isSetupDone = true;
           await FirebaseFirestore.instance
               .collection('users')
               .doc(u.uid)
-              .set({'setupDone': true}, SetOptions(merge: true));
+              .set({'setupDone': true, 'hasCompletedSetup': true}, SetOptions(merge: true));
         }
       }
     } catch (_) {
@@ -148,8 +185,12 @@ class _logInViewState extends State<logInView> {
     }
 
     if (!mounted) return;
-    // Trimitem spre home; dacă setupDone e fals, redirect-ul din AppRouter te duce singur la RoomsSetup
-    context.go(homePath);
+    if (isSetupDone) {
+      await ProfileService.ensureAdminProfileExists(u.uid);
+      if (mounted) context.go(profileSelectionPath);
+    } else {
+      context.go(RoomsSetupPath);
+    }
   }
 
   Future<void> _setLoggedInUser() async {
@@ -162,7 +203,7 @@ class _logInViewState extends State<logInView> {
     await prefs.setBool('isGuest', true);
 
     if (!mounted) return;
-    context.push(payWallPath);
+    context.push(homePath);
   }
 
   @override
@@ -279,7 +320,85 @@ class _logInViewState extends State<logInView> {
                             ),
                           ),
                         ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+
+                  // Divider "eller"
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          "eller",
+                          style: TextStyle(
+                            color: Colors.grey.withValues(alpha: 0.6),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Facebook Login Button
+                  GestureDetector(
+                    onTap: _loginWithFacebook,
+                    child: Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1877F2),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1877F2).withValues(alpha: 0.3),
+                            offset: const Offset(0, 4),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: _isFbLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.facebook, color: Colors.white, size: 24),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    "Logg inn med Facebook",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
                   GestureDetector(
                     onTap: _continueAsGuest,
                     child: Container(

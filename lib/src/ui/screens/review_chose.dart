@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ralu_norvegia/src/app/app_router.dart';
 import '../../service/firestore_bootstrap.dart';
+import '../../service/profile_service.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 
 class ReviewChose extends StatefulWidget {
@@ -307,8 +308,11 @@ class _ReviewChoseState extends State<ReviewChose> {
                       'hasCompletedSetup': true,
                     }, SetOptions(merge: true));
 
+                    // Automatically create default admin profile if none exists
+                    await ProfileService.ensureAdminProfileExists(uid);
+
                     if (mounted) {
-                      context.go(homePath);
+                      context.go(profileSelectionPath);
                     }
                   } finally {
                     if (mounted) {

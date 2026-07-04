@@ -1,9 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ralu_norvegia/src/app/app_router.dart';
-import 'package:ralu_norvegia/src/app/app_string.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
+import 'package:ralu_norvegia/src/service/auth_service.dart';
+import 'package:ralu_norvegia/src/service/profile_service.dart';
 
 class WelcomeView extends StatefulWidget {
   const WelcomeView({Key? key}) : super(key: key);
@@ -14,6 +17,7 @@ class WelcomeView extends StatefulWidget {
 
 class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStateMixin {
   double _opacity = 0.0;
+  bool _isFbLoading = false;
 
   @override
   void initState() {
@@ -23,6 +27,83 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
         _opacity = 1.0;
       });
     });
+  }
+
+  Future<void> _handlePostLogin(User? user) async {
+    if (user == null) return;
+    
+    // Save in SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isGuest', false);
+
+    bool isSetupDone = false;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final data = userDoc.data();
+      if (data != null) {
+        isSetupDone = (data['hasCompletedSetup'] == true) || (data['setupDone'] == true);
+      }
+
+      // Migration check
+      if (!isSetupDone) {
+        final luniDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('weeklyTasks')
+            .doc('Uke 1')
+            .collection('days')
+            .doc('Luni')
+            .get();
+        if (luniDoc.exists) {
+          isSetupDone = true;
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({'setupDone': true, 'hasCompletedSetup': true}, SetOptions(merge: true));
+        }
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    if (isSetupDone) {
+      await ProfileService.ensureAdminProfileExists(user.uid);
+      if (mounted) context.go(profileSelectionPath);
+    } else {
+      context.go(RoomsSetupPath);
+    }
+  }
+
+  Future<void> _loginWithFacebook() async {
+    if (_isFbLoading) return;
+
+    setState(() {
+      _isFbLoading = true;
+    });
+
+    try {
+      final userCredential = await AuthService.signInWithFacebook();
+      if (userCredential != null) {
+        await _handlePostLogin(userCredential.user);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Facebook login feilet: $e'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFbLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -54,7 +135,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                 "vaskmedmeg",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.primaryText.withOpacity(0.6),
+                  color: AppColors.primaryText.withValues(alpha: 0.6),
                   fontSize: 34,
                   fontWeight: FontWeight.w400,
                   letterSpacing: 1.2,
@@ -76,7 +157,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accent3.withOpacity(0.3),
+                        color: AppColors.accent3.withValues(alpha: 0.3),
                         offset: const Offset(0, 4),
                         blurRadius: 8,
                       ),
@@ -93,6 +174,82 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              
+              // Divider "eller"
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      "eller",
+                      style: TextStyle(
+                        color: Colors.grey.withValues(alpha: 0.6),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Facebook Button
+              GestureDetector(
+                onTap: _loginWithFacebook,
+                child: Container(
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1877F2),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1877F2).withValues(alpha: 0.3),
+                        offset: const Offset(0, 4),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: _isFbLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.facebook, color: Colors.white, size: 24),
+                            SizedBox(width: 12),
+                            Text(
+                              "Fortsett med Facebook",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+
               const SizedBox(height: 24),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -100,7 +257,7 @@ class _WelcomeViewState extends State<WelcomeView> with SingleTickerProviderStat
                   Text(
                     "Har du allerede en konto?",
                     style: TextStyle(
-                      color: Colors.grey.withOpacity(0.6),
+                      color: Colors.grey.withValues(alpha: 0.6),
                       fontSize: 16,
                     ),
                   ),

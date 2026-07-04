@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/utils/week_utils.dart';
+import 'package:ralu_norvegia/src/service/profile_service.dart';
+import 'package:ralu_norvegia/src/models/family_profile.dart';
 
 import '../../utils/streak_utils.dart';
 
@@ -28,6 +30,11 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
   final List<String> allLocations = [];
   final List<List<String>> _tasksPerLocation = [];
   List<List<bool>> _isCheckedPerLocation = [];
+
+  bool _isActiveAdmin = true;
+  String? _activeProfileId;
+  List<FamilyProfile> _profiles = [];
+  final List<_DisplayLocation> _displayLocations = [];
 
   bool _completionDialogShown = false;
 
@@ -143,23 +150,41 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
         .collection('userProgress')
         .doc(weekKey);
 
-    // dacă există deja vreo zi, considerăm săptămâna inițializată
-    for (final dn in dayNames) {
-      final snap = await weekRef.collection('days').doc(dn).get();
-      if (snap.exists) return;
+    final weekSnap = await weekRef.get();
+    if (weekSnap.exists) {
+      if (weekSnap.data()?['initialized'] == true) {
+        return;
+      }
+      final snaps = await Future.wait(dayNames.map((dn) => weekRef.collection('days').doc(dn).get()));
+      if (snaps.any((snap) => snap.exists)) {
+        await weekRef.set({'initialized': true}, SetOptions(merge: true));
+        return;
+      }
     }
 
     // Construim din weeklyTasks (Uke 1..4) mapând ISO week % 4
     final uke = _ukeFor(date);
-    for (final dn in dayNames) {
-      final legacy = await FirebaseFirestore.instance
-          .collection('users').doc(user!.uid)
-          .collection('weeklyTasks').doc(uke)
-          .collection('days').doc(dn)
-          .get();
+    final legacySnaps = await Future.wait(dayNames.map((dn) => FirebaseFirestore.instance
+        .collection('users').doc(user!.uid)
+        .collection('weeklyTasks').doc(uke)
+        .collection('days').doc(dn)
+        .get()));
+
+    final List<Future<void>> writeFutures = [];
+
+    writeFutures.add(weekRef.set({
+      'initialized': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)));
+
+    for (int idx = 0; idx < dayNames.length; idx++) {
+      final dn = dayNames[idx];
+      final legacy = legacySnaps[idx];
 
       if (!legacy.exists) {
-        await weekRef.collection('days').doc(dn).set({});
+        writeFutures.add(weekRef.collection('days').doc(dn).set({
+          'progress': 0.0,
+        }));
         continue;
       }
 
@@ -168,26 +193,28 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       final nrLoc = int.tryParse('${data['nrLoc'] ?? '0'}') ?? 0;
       final List<String> tasks = List<String>.from(data['tasks'] ?? const <String>[]);
 
-      await weekRef.collection('days').doc(dn).set({
+      writeFutures.add(weekRef.collection('days').doc(dn).set({
+        'progress': 0.0,
         if (suprafata != null) 'suprafata': suprafata,
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)));
 
       for (int i = 0; i < nrLoc; i++) {
         final key = (i == 0) ? 'locatie' : 'locatie$i';
         final name = (data[key]?.toString().trim().isNotEmpty ?? false)
             ? data[key].toString()
             : 'Locație ${i + 1}';
-        await weekRef
+        writeFutures.add(weekRef
             .collection('days').doc(dn)
             .collection('locations').doc('loc_$i')
             .set({
           'index': i,
           'name': name,
           'tasks': tasks,
-          // 'done': {} // se va completa la primele bife
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)));
       }
     }
+
+    await Future.wait(writeFutures);
   }
 
   Future<void> _loadTasksForDate(DateTime date) async {
@@ -197,6 +224,13 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       final day = _getDayFor(date);
       currentDay = day;
       currentWeek = week;
+
+      // Load active profile details
+      _activeProfileId = await ProfileService.getActiveProfileId();
+      _isActiveAdmin = await ProfileService.isActiveProfileAdmin();
+      if (user != null) {
+        _profiles = await ProfileService.getProfiles(user!.uid);
+      }
 
       final dayRef = FirebaseFirestore.instance
           .collection('users')
@@ -215,11 +249,12 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
           allLocations.clear();
           _tasksPerLocation.clear();
           _isCheckedPerLocation = [];
+          _displayLocations.clear();
         });
         return;
       }
 
-      final dayData = daySnap.data() as Map<String, dynamic>? ?? {};
+      final dayData = daySnap.data() ?? {};
       surfaceForToday = dayData['suprafata']?.toString();
 
       final locsSnap = await dayRef
@@ -230,6 +265,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       allLocations.clear();
       _tasksPerLocation.clear();
       _isCheckedPerLocation = [];
+      _displayLocations.clear();
 
       if (locsSnap.docs.isEmpty) {
         if (!mounted) return;
@@ -239,8 +275,10 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
       for (int li = 0; li < locsSnap.docs.length; li++) {
         final data = locsSnap.docs[li].data();
-        allLocations.add(data['name']?.toString() ?? 'Locație ${li + 1}');
+        final name = data['name']?.toString() ?? 'Locație ${li + 1}';
         final List<String> tasks = List<String>.from(data['tasks'] ?? const <String>[]);
+        
+        allLocations.add(name);
         _tasksPerLocation.add(tasks);
 
         final Map<String, dynamic> doneMap = Map<String, dynamic>.from(data['done'] ?? {});
@@ -249,6 +287,30 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
           (ti) => (doneMap['$ti'] is bool) ? doneMap['$ti'] as bool : false,
         );
         _isCheckedPerLocation.add(row);
+
+        // Populate display list
+        final delegations = Map<String, dynamic>.from(data['delegations'] ?? {});
+        final List<_DisplayTask> displayTasks = [];
+
+        for (int ti = 0; ti < tasks.length; ti++) {
+          final delegatedProfileId = delegations['$ti']?.toString();
+          if (_isActiveAdmin || delegatedProfileId == _activeProfileId) {
+            displayTasks.add(_DisplayTask(
+              originalIndex: ti,
+              name: tasks[ti],
+              isChecked: row[ti],
+              delegatedTo: delegatedProfileId,
+            ));
+          }
+        }
+
+        if (displayTasks.isNotEmpty) {
+          _displayLocations.add(_DisplayLocation(
+            originalIndex: li,
+            name: name,
+            tasks: displayTasks,
+          ));
+        }
       }
 
       if (mounted) setState(() {});
@@ -271,24 +333,20 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
   Future<void> _saveCheckboxState(int locIdx, int taskIdx, bool value) async {
     try {
-
       if (!value) {
         _completionDialogShown = false;
       }
 
-      final allTasksDoneForDay = _isCheckedPerLocation.isNotEmpty &&
-          _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
-
-      // dacă toate erau bifate și userul vrea să scoată una → întreabă
-      if (allTasksDoneForDay && !value) {
+      final wasAllDone = _completionDialogShown;
+      if (wasAllDone && !value) {
         final confirm = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text("Decomplete day?"),
-            content: const Text("This will affect your streak. Are you sure?"),
+            title: const Text("Avbryt fullføring?"),
+            content: const Text("Dette vil påvirke streak-en din. Er du sikker?"),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-              ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Yes")),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Avbryt")),
+              ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Ja")),
             ],
           ),
         ) ?? false;
@@ -297,6 +355,15 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
           // dacă refuză, menține bifa
           setState(() {
             _isCheckedPerLocation[locIdx][taskIdx] = true;
+            for (final dl in _displayLocations) {
+              if (dl.originalIndex == locIdx) {
+                for (final dt in dl.tasks) {
+                  if (dt.originalIndex == taskIdx) {
+                    dt.isChecked = true;
+                  }
+                }
+              }
+            }
           });
           return;
         }
@@ -313,17 +380,28 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
         SetOptions(merge: true),
       );
 
+      await _updateDayProgress();
+
       // după orice schimbare recalculează streak-ul
       final streak = await calculateStreak(user!.uid);
       widget.streakNotifier.value = streak;
 
       // dacă toate sunt bifate → dialog de confirmare
-      final allDone = _isCheckedPerLocation.isNotEmpty &&
-          _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
-      if (allDone && !_completionDialogShown) {
+      final isAllDoneForActive = _isActiveAdmin
+          ? (_isCheckedPerLocation.isNotEmpty &&
+              _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b)))
+          : (_displayLocations.isNotEmpty &&
+              _displayLocations.every((loc) => loc.tasks.every((t) => t.isChecked)));
+
+      if (isAllDoneForActive && !_completionDialogShown) {
         _completionDialogShown = true;
 
-        await _incrementStreak();
+        final allHouseholdTasksDone = _isCheckedPerLocation.isNotEmpty &&
+            _isCheckedPerLocation.every((locRow) => locRow.isNotEmpty && locRow.every((b) => b));
+        if (allHouseholdTasksDone) {
+          await _incrementStreak();
+        }
+
         final newStreak = await calculateStreak(user!.uid);
         widget.streakNotifier.value = newStreak;
 
@@ -333,6 +411,38 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       }
     } catch (e) {
       debugPrint('Error saving checkbox state: $e');
+    }
+  }
+
+  Future<void> _updateDayProgress() async {
+    try {
+      if (user == null) return;
+      final dayRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .collection('userProgress')
+          .doc(currentWeek)
+          .collection('days')
+          .doc(currentDay);
+
+      final locsSnap = await dayRef.collection('locations').get();
+      int done = 0, total = 0;
+      for (final d in locsSnap.docs) {
+        final data = d.data();
+        final tasks = List<String>.from(data['tasks'] ?? const <String>[]);
+        final doneMap = Map<String, dynamic>.from(data['done'] ?? {});
+        total += tasks.length;
+        for (int i = 0; i < tasks.length; i++) {
+          if ((doneMap['$i'] ?? false) == true) done++;
+        }
+      }
+      final progress = total == 0 ? 0.0 : (done / total);
+      await dayRef.set({
+        'progress': progress,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Error updating day progress: $e");
     }
   }
 
@@ -440,10 +550,10 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                           fontSize: 15,
                         ),
                       ),
-                      if (allLocations.length == 1) ...[
+                      if (_displayLocations.length == 1) ...[
                         const SizedBox(height: 4),
                         Text(
-                          "Rom: ${allLocations.first}",
+                          "Rom: ${_displayLocations.first.name}",
                           style: TextStyle(
                             color: AppColors.primaryText2,
                             fontSize: 15,
@@ -471,11 +581,12 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                             color: AppColors.accent3,
                           ),
                         )
-                      : (_tasksPerLocation.isEmpty ||
-                              (_tasksPerLocation.every((l) => l.isEmpty)))
+                      : _displayLocations.isEmpty
                           ? Center(
                               child: Text(
-                                "No tasks for today.",
+                                _isActiveAdmin
+                                    ? "Ingen oppgaver for i dag."
+                                    : "Ingen oppgaver tildelt deg for i dag.",
                                 style: TextStyle(
                                   color: AppColors.primaryText2,
                                   fontSize: 16,
@@ -483,124 +594,158 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                                 ),
                               ),
                             )
-                          : ListView(
+                          : ListView.builder(
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                              children: [
-                                if (allLocations.length > 1)
-                                  ...List.generate(allLocations.length, (locIdx) {
-                                    final tasks = _tasksPerLocation[locIdx];
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 18),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.85),
-                                        borderRadius: BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black12,
-                                            blurRadius: 7,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
+                              itemCount: _displayLocations.length,
+                              itemBuilder: (context, locIdx) {
+                                final displayLoc = _displayLocations[locIdx];
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 18),
+                                  color: Colors.white,
+                                  elevation: 3,
+                                  shadowColor: Colors.black12,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: ExpansionTile(
+                                    leading: Icon(
+                                      Icons.home_work_outlined,
+                                      color: AppColors.accent3,
+                                      size: 26,
+                                    ),
+                                    tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                    title: Text(
+                                      displayLoc.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.accentDark,
+                                        fontSize: 17,
                                       ),
-                                      child: ExpansionTile(
-                                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                                        title: Text(
-                                          allLocations[locIdx],
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.accent3,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        children: [
-                                          for (int ti = 0; ti < tasks.length; ti++)
-                                            Container(
-                                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                    shape: const Border(),
+                                    collapsedShape: const Border(),
+                                    childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    children: [
+                                      for (int ti = 0; ti < displayLoc.tasks.length; ti++)
+                                        Builder(
+                                          builder: (context) {
+                                            final displayTask = displayLoc.tasks[ti];
+                                            final isDone = displayTask.isChecked;
+                                            final delegatedProfile = displayTask.delegatedTo == null
+                                                ? null
+                                                : _profiles.cast<FamilyProfile?>().firstWhere(
+                                                      (p) => p?.id == displayTask.delegatedTo,
+                                                      orElse: () => null,
+                                                    );
+
+                                            return Container(
+                                              margin: const EdgeInsets.symmetric(vertical: 6),
+                                              padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
-                                                color: AppColors.secondary.withOpacity(0.9),
+                                                color: AppColors.primaryBackground.withValues(alpha: 0.5),
                                                 borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: isDone
+                                                      ? Colors.green.withValues(alpha: 0.3)
+                                                      : AppColors.accent3.withValues(alpha: 0.2),
+                                                  width: 1,
+                                                ),
                                               ),
-                                              child: Row(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      tasks[ti],
-                                                      style: TextStyle(
-                                                        color: AppColors.primaryText,
-                                                        fontWeight: FontWeight.w500,
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          displayTask.name,
+                                                          style: const TextStyle(
+                                                            color: AppColors.primaryText,
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 15,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: isDone
+                                                              ? Colors.green.withValues(alpha: 0.15)
+                                                              : Colors.orange.withValues(alpha: 0.15),
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                        child: Text(
+                                                          isDone ? 'Fullført' : 'Gjenstår',
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: isDone ? Colors.green.shade800 : Colors.orange.shade800,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Checkbox(
+                                                        value: displayTask.isChecked,
+                                                        activeColor: AppColors.accent3,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(5),
+                                                        ),
+                                                        onChanged: (bool? v) {
+                                                          setState(() {
+                                                            displayTask.isChecked = v ?? false;
+                                                            _isCheckedPerLocation[displayLoc.originalIndex][displayTask.originalIndex] = v ?? false;
+                                                          });
+                                                          _saveCheckboxState(
+                                                            displayLoc.originalIndex,
+                                                            displayTask.originalIndex,
+                                                            displayTask.isChecked,
+                                                          );
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  if (delegatedProfile != null) ...[
+                                                    const SizedBox(height: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: delegatedProfile.color.withValues(alpha: 0.15),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(
+                                                          color: delegatedProfile.color.withValues(alpha: 0.3),
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            delegatedProfile.emoji,
+                                                            style: const TextStyle(fontSize: 12),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            delegatedProfile.name,
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: delegatedProfile.color,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                  ),
-                                                  Checkbox(
-                                                    value: _isCheckedPerLocation[locIdx][ti],
-                                                    activeColor: AppColors.accent3,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(5),
-                                                    ),
-                                                    onChanged: (bool? v) {
-                                                      setState(() {
-                                                        _isCheckedPerLocation[locIdx][ti] = v ?? false;
-                                                      });
-                                                      _saveCheckboxState(locIdx, ti, _isCheckedPerLocation[locIdx][ti]);
-                                                    },
-                                                  ),
+                                                  ],
                                                 ],
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
-                                if (allLocations.length == 1)
-                                  ...List.generate(_tasksPerLocation[0].length, (ti) {
-                                    final checked = (_isCheckedPerLocation.isNotEmpty && _isCheckedPerLocation[0][ti]);
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 14),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.secondary.withOpacity(0.9),
-                                        borderRadius: BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black12,
-                                            blurRadius: 6,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              _tasksPerLocation[0][ti],
-                                              style: TextStyle(
-                                                color: AppColors.primaryText,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          Checkbox(
-                                            value: checked,
-                                            activeColor: AppColors.accent3,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(5),
-                                            ),
-                                            onChanged: (bool? v) {
-                                              setState(() {
-                                                if (_isCheckedPerLocation.isEmpty) {
-                                                  _isCheckedPerLocation = [ List<bool>.filled(_tasksPerLocation[0].length, false), ];
-                                                }
-                                                _isCheckedPerLocation[0][ti] = v ?? false;
-                                              });
-                                              _saveCheckboxState(0, ti, _isCheckedPerLocation[0][ti]);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
-                              ],
+                                            );
+                                          }
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
                 ),
               ],
@@ -613,7 +758,7 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
   // (rămâne neschimbat; doar mesajul menționează o singură locație dacă există exact una)
   void _showCompletionDialog(BuildContext context) {
-    final singleLoc = (allLocations.length == 1) ? allLocations.first : null;
+    final singleLoc = (_displayLocations.length == 1) ? _displayLocations.first.name : null;
 
     showDialog(
       context: context,
@@ -657,8 +802,12 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
 
                 Text(
                   singleLoc == null
-                      ? "Du har fullført alle oppgavene for ${translateDay(currentDay)}."
-                      : "Du har fullført alle oppgavene i $singleLoc for ${translateDay(currentDay)}.",
+                      ? (_isActiveAdmin
+                          ? "Du har fullført alle oppgavene for ${translateDay(currentDay)}."
+                          : "Du har fullført alle dine oppgaver for ${translateDay(currentDay)}.")
+                      : (_isActiveAdmin
+                          ? "Du har fullført alle oppgavene i $singleLoc for ${translateDay(currentDay)}."
+                          : "Du har fullført alle dine oppgaver i $singleLoc for ${translateDay(currentDay)}."),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -685,9 +834,11 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
                       Navigator.of(context).pop(); // 🔥 UN SINGUR POP
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            "Bra jobba! Du har fullført dagens rengjøring 🎉",
+                            _isActiveAdmin
+                                ? "Bra jobba! Du har fullført dagens rengjøring 🎉"
+                                : "Bra jobba! Du har fullført dine oppgaver for i dag 🎉",
                           ),
                         ),
                       );
@@ -708,4 +859,30 @@ class _TodayViewState extends State<TodayView> with AutomaticKeepAliveClientMixi
       },
     );
   }
+}
+
+class _DisplayTask {
+  final int originalIndex;
+  final String name;
+  bool isChecked;
+  final String? delegatedTo;
+
+  _DisplayTask({
+    required this.originalIndex,
+    required this.name,
+    required this.isChecked,
+    this.delegatedTo,
+  });
+}
+
+class _DisplayLocation {
+  final int originalIndex;
+  final String name;
+  final List<_DisplayTask> tasks;
+
+  _DisplayLocation({
+    required this.originalIndex,
+    required this.name,
+    required this.tasks,
+  });
 }

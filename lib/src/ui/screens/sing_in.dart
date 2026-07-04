@@ -6,7 +6,10 @@ import 'package:ralu_norvegia/src/app/app_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/widgets/validators.dart';
 import 'package:ralu_norvegia/src/ui/widgets/widget_factory.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../service/firestore_bootstrap.dart';
+import '../../service/auth_service.dart';
+import '../../service/profile_service.dart';
 
 class singInView extends StatefulWidget {
   const singInView({super.key});
@@ -24,11 +27,119 @@ class _singInViewState extends State<singInView> {
   final _phoneNumberController = TextEditingController();
   bool passToggle = true;
   bool _isLoading = false;
+  bool _isFbLoading = false;
 
   void togglePasswordVisibility() {
     setState(() {
       passToggle = !passToggle;
     });
+  }
+
+  Future<void> _loginWithFacebook() async {
+    if (_isFbLoading) return;
+    setState(() {
+      _isFbLoading = true;
+    });
+
+    try {
+      final userCredential = await AuthService.signInWithFacebook();
+      if (userCredential != null) {
+        final user = userCredential.user;
+        if (user != null) {
+          // Verify if user details already exist in 'users' collection
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+          if (!userDoc.exists) {
+            // New user registration via Facebook
+            String firstName = '';
+            String lastName = '';
+            if (user.displayName != null && user.displayName!.isNotEmpty) {
+              final parts = user.displayName!.split(' ');
+              firstName = parts.first;
+              if (parts.length > 1) {
+                lastName = parts.sublist(1).join(' ');
+              }
+            }
+
+            // Set user details in 'users' collection
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+              'first name': firstName,
+              'last name': lastName,
+              'email': user.email ?? '',
+              'phone number': 0, // Placeholder
+              'points': 0,
+              'streakCount': 0,
+              'lastActiveDay': null,
+            });
+
+            // Initialize sub-collection completedTasks
+            await _initializeCompletedTasksForUser(user.uid);
+          }
+
+          // Ensure base skeleton in firestore is created
+          await FirestoreBootstrap.ensureUserSkeleton(
+            uid: user.uid,
+            email: user.email,
+          );
+
+          // Set login status
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isGuest', false);
+
+          // Check if setup is already completed
+          bool isSetupDone = false;
+          final data = userDoc.data();
+          if (data != null) {
+            isSetupDone = (data['hasCompletedSetup'] == true) || (data['setupDone'] == true);
+          }
+
+          // Migration check
+          if (!isSetupDone) {
+            final luniDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('weeklyTasks')
+                .doc('Uke 1')
+                .collection('days')
+                .doc('Luni')
+                .get();
+            if (luniDoc.exists) {
+              isSetupDone = true;
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .set({'setupDone': true, 'hasCompletedSetup': true}, SetOptions(merge: true));
+            }
+          }
+
+          if (!mounted) return;
+          if (isSetupDone) {
+            await ProfileService.ensureAdminProfileExists(user.uid);
+            if (mounted) GoRouter.of(context).go(profileSelectionPath);
+          } else {
+            GoRouter.of(context).go(RoomsSetupPath);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Facebook login feilet: $e'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFbLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _register() async {
@@ -276,7 +387,7 @@ class _singInViewState extends State<singInView> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.accent3.withOpacity(0.3),
+                            color: AppColors.accent3.withValues(alpha: 0.3),
                             offset: const Offset(0, 4),
                             blurRadius: 8,
                           ),
@@ -291,6 +402,79 @@ class _singInViewState extends State<singInView> {
                             fontSize: 18,
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          "eller",
+                          style: TextStyle(
+                            color: AppColors.primaryText2,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: _loginWithFacebook,
+                    child: Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1877F2),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1877F2).withValues(alpha: 0.3),
+                            offset: const Offset(0, 4),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: _isFbLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.facebook, color: Colors.white, size: 24),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    "Registrer deg med Facebook",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ),

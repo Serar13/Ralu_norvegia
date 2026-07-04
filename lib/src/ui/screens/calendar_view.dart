@@ -57,29 +57,21 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
     _monday = _startOfWeek(_focusedDay);
     _friday = _monday.add(const Duration(days: 4));
 
-    _loadAccountCreatedDate().then((_) {
-      _loadAllProgressFromAccountCreation();
-      _loadAccountCreatedDate().then((_) async {
-        await _loadAllProgressFromAccountCreation();
+    _loadAccountCreatedDate().then((_) async {
+      await _loadAllProgressForMonth(_focusedDay);
 
-        if (!mounted) return;
-        setState(() {
-          _isInitialLoadDone = true;
-        });
+      if (!mounted) return;
+      setState(() {
+        _isInitialLoadDone = true;
+      });
 
-        if (_isCurrentIsoWeek(_monday)) {
-          _ensureWeekInitializedForMonday(_monday).then((_) {
-            if (!mounted) return;
-            _attachCurrentWeekListeners();
-          });
-          await _ensureWeekInitializedForMonday(_monday);
-          if (!mounted) return;
+      if (_isCurrentIsoWeek(_monday)) {
+        await _ensureWeekInitializedForMonday(_monday);
+        if (mounted) {
           _attachCurrentWeekListeners();
         }
-      });
-    }
-    );
-
+      }
+    });
   }
 
   Future<void> _loadAccountCreatedDate() async {
@@ -139,41 +131,7 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
   }
 
   Future<void> _loadAllProgressFromAccountCreation() async {
-    final creationDate = DateTime(_accountCreatedAt!.year, _accountCreatedAt!.month, _accountCreatedAt!.day);
-    final now = DateTime.now();
-    DateTime current = _startOfWeek(creationDate); // luni din săptămâna contului
-
-    while (!current.isAfter(now)) {
-      final weekKey = _yearWeekKey(current);
-      for (int i = 0; i < 5; i++) {
-        final day = current.add(Duration(days: i));
-        final dayName = _dayKey(day);
-        final key = _dateKeyInt(day);
-
-        final locs = await FirebaseFirestore.instance
-            .collection('users').doc(uid)
-            .collection('userProgress').doc(weekKey)
-            .collection('days').doc(dayName)
-            .collection('locations')
-            .get();
-
-        int done = 0, total = 0;
-        for (final d in locs.docs) {
-          final data = d.data();
-          final tasks = List<String>.from(data['tasks'] ?? const <String>[]);
-          final doneMap = Map<String, dynamic>.from(data['done'] ?? {});
-          total += tasks.length;
-          for (int i = 0; i < tasks.length; i++) {
-            if ((doneMap['$i'] ?? false) == true) done++;
-          }
-        }
-        final progress = total == 0 ? 0.0 : (done / total);
-        _progressCache[key] = progress;
-      }
-      current = current.add(const Duration(days: 7));
-    }
-
-    if (mounted) setState(() {});
+    // Deprecated - loading is now lazy and parallelized per month
   }
 
   @override
@@ -245,40 +203,65 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
     final lastOfMonth = DateTime(date.year, date.month + 1, 0);
 
     DateTime current = _startOfWeek(firstOfMonth);
+    final List<DateTime> daysToLoad = [];
 
     while (!current.isAfter(lastOfMonth)) {
-      final weekKey = _yearWeekKey(current);
       for (int i = 0; i < 5; i++) {
         final day = current.add(Duration(days: i));
-        final dayName = _dayKey(day);
-        final key = _dateKeyInt(day);
-
-        final locs = await FirebaseFirestore.instance
-            .collection('users').doc(uid)
-            .collection('userProgress').doc(weekKey)
-            .collection('days').doc(dayName)
-            .collection('locations')
-            .get();
-
-        int done = 0, total = 0;
-        for (final d in locs.docs) {
-          final data = d.data();
-          final tasks = List<String>.from(data['tasks'] ?? const <String>[]);
-          final doneMap = Map<String, dynamic>.from(data['done'] ?? {});
-          total += tasks.length;
-          for (int i = 0; i < tasks.length; i++) {
-            if ((doneMap['$i'] ?? false) == true) done++;
-          }
-        }
-        final progress = total == 0 ? 0.0 : (done / total);
-        debugPrint("  ➡️ Saving progress for $day = $progress");
-        if (!_progressCache.containsKey(key)) {
-          _progressCache[key] = progress;
-        }
+        daysToLoad.add(day);
       }
       current = current.add(const Duration(days: 7));
     }
 
+    final Set<String> uniqueWeeks = daysToLoad.map((d) => _yearWeekKey(d)).toSet();
+
+    final List<Future<void>> weekFutures = uniqueWeeks.map((weekKey) async {
+      try {
+        final daysSnap = await FirebaseFirestore.instance
+            .collection('users').doc(uid)
+            .collection('userProgress').doc(weekKey)
+            .collection('days')
+            .get();
+
+        for (final dayDoc in daysSnap.docs) {
+          final dayName = dayDoc.id; // Luni, Marti, etc.
+          final matchingDay = daysToLoad.firstWhere(
+            (d) => _dayKey(d) == dayName && _yearWeekKey(d) == weekKey,
+            orElse: () => DateTime.now(),
+          );
+          final key = _dateKeyInt(matchingDay);
+
+          if (_progressCache.containsKey(key)) continue;
+
+          final data = dayDoc.data();
+          if (data.containsKey('progress')) {
+            final double p = (data['progress'] as num).toDouble();
+            _progressCache[key] = p;
+          } else {
+            // Fallback: load locations subcollection
+            final locs = await dayDoc.reference.collection('locations').get();
+            int done = 0, total = 0;
+            for (final d in locs.docs) {
+              final locData = d.data();
+              final tasks = List<String>.from(locData['tasks'] ?? const <String>[]);
+              final doneMap = Map<String, dynamic>.from(locData['done'] ?? {});
+              total += tasks.length;
+              for (int i = 0; i < tasks.length; i++) {
+                if ((doneMap['$i'] ?? false) == true) done++;
+              }
+            }
+            final progress = total == 0 ? 0.0 : (done / total);
+            _progressCache[key] = progress;
+            // Write to Firestore day document to cache it permanently
+            await dayDoc.reference.set({'progress': progress}, SetOptions(merge: true));
+          }
+        }
+      } catch (e) {
+        debugPrint("Error loading week progress for $weekKey: $e");
+      }
+    }).toList();
+
+    await Future.wait(weekFutures);
     debugPrint("✅ Finished loading month ${date.month}/${date.year}");
     if (mounted) setState(() {});
   }
@@ -317,22 +300,40 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
         .collection('users').doc(uid)
         .collection('userProgress').doc(weekKey);
 
-    // dacă există deja vreo zi, ne oprim
-    for (final dn in const ['Luni','Marti','Miercuri','Joi','Vineri']) {
-      final snap = await weekRef.collection('days').doc(dn).get();
-      if (snap.exists) return;
+    final weekSnap = await weekRef.get();
+    final dayNames = const ['Luni','Marti','Miercuri','Joi','Vineri'];
+    if (weekSnap.exists) {
+      if (weekSnap.data()?['initialized'] == true) {
+        return;
+      }
+      final snaps = await Future.wait(dayNames.map((dn) => weekRef.collection('days').doc(dn).get()));
+      if (snaps.any((snap) => snap.exists)) {
+        await weekRef.set({'initialized': true}, SetOptions(merge: true));
+        return;
+      }
     }
 
     final uke = ukeFor(monday);
-    for (final dn in const ['Luni','Marti','Miercuri','Joi','Vineri']) {
-      final legacy = await FirebaseFirestore.instance
-          .collection('users').doc(uid)
-          .collection('weeklyTasks').doc(uke)
-          .collection('days').doc(dn)
-          .get();
+    final legacySnaps = await Future.wait(dayNames.map((dn) => FirebaseFirestore.instance
+        .collection('users').doc(uid)
+        .collection('weeklyTasks').doc(uke)
+        .collection('days').doc(dn)
+        .get()));
+
+    final List<Future<void>> writeFutures = [];
+    writeFutures.add(weekRef.set({
+      'initialized': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)));
+
+    for (int idx = 0; idx < dayNames.length; idx++) {
+      final dn = dayNames[idx];
+      final legacy = legacySnaps[idx];
 
       if (!legacy.exists) {
-        await weekRef.collection('days').doc(dn).set({});
+        writeFutures.add(weekRef.collection('days').doc(dn).set({
+          'progress': 0.0,
+        }));
         continue;
       }
 
@@ -341,25 +342,28 @@ class _CalendarWeekViewState extends State<CalendarWeekView> {
       final nrLoc = int.tryParse('${data['nrLoc'] ?? '0'}') ?? 0;
       final List<String> tasks = List<String>.from(data['tasks'] ?? const <String>[]);
 
-      await weekRef.collection('days').doc(dn).set({
+      writeFutures.add(weekRef.collection('days').doc(dn).set({
+        'progress': 0.0,
         if (suprafata != null) 'suprafata': suprafata,
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)));
 
       for (int i = 0; i < nrLoc; i++) {
         final key = (i == 0) ? 'locatie' : 'locatie$i';
         final name = (data[key]?.toString().trim().isNotEmpty ?? false)
             ? data[key].toString()
             : 'Locație ${i + 1}';
-        await weekRef
+        writeFutures.add(weekRef
             .collection('days').doc(dn)
             .collection('locations').doc('loc_$i')
             .set({
           'index': i,
           'name': name,
           'tasks': tasks,
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)));
       }
     }
+
+    await Future.wait(writeFutures);
   }
 
   // String _weekLabel(DateTime d) {

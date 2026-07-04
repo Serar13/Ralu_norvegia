@@ -21,6 +21,10 @@ import '../ui/screens/payWall.dart';
 import '../ui/screens/review_chose.dart';
 import '../ui/screens/roomsSetup_view.dart';
 import '../ui/screens/waitingForVerification_view.dart';
+import '../ui/screens/profile_selection_view.dart';
+import '../ui/screens/create_profile_view.dart';
+import '../ui/screens/delegate_tasks_view.dart';
+import '../ui/screens/my_tasks_view.dart';
 
 const String loginPath = "/login";
 const String singinPath = "/singin";
@@ -41,6 +45,10 @@ const String ReviewChosePath = "/ReviewChose";
 const String RoomsSetupPath = "/RoomsSetup";
 const String onboardingPath = "/onboarding";
 const String payWallPath = "/payWall";
+const String profileSelectionPath = "/profileSelection";
+const String createProfilePath = "/createProfile";
+const String delegateTasksPath = "/delegateTasks";
+const String myTasksPath = "/myTasks";
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
 GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -265,6 +273,49 @@ class AppRouter {
         pageBuilder: (context, state) =>
         NoTransitionPage(
             child: RoomsSetupPage()
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.profileSelectionRoute,
+        path: profileSelectionPath,
+        pageBuilder: (context, state) =>
+            CustomTransitionPage(
+              child: const ProfileSelectionView(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
+      ),
+      GoRoute(
+        name: AppRoutes.createProfileRoute,
+        path: createProfilePath,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final bool isFirstProfile = (state.extra as Map<String, dynamic>?)?['isFirstProfile'] == true;
+          return NoTransitionPage(
+            child: CreateProfileView(isFirstProfile: isFirstProfile),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRoutes.delegateTasksRoute,
+        path: delegateTasksPath,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+        const NoTransitionPage(
+            child: DelegateTasksView()
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.myTasksRoute,
+        path: myTasksPath,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+        const NoTransitionPage(
+            child: MyTasksView()
         ),
       ),
     ],

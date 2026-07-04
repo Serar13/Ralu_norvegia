@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:ralu_norvegia/src/ui/screens/dailyItemDetails.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ralu_norvegia/src/models/family_profile.dart';
+import 'package:ralu_norvegia/src/service/profile_service.dart';
 
 import '../../app/app_router.dart';
 
@@ -18,124 +20,200 @@ class dailyView extends StatefulWidget {
 }
 
 class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixin {
-  Future<Map<String, bool>>? _tasksFuture;
   final List<Map<String, dynamic>> dailyItems = [];
   final User? user = FirebaseAuth.instance.currentUser;
   bool _allTasksCompleted = false;
 
+  List<FamilyProfile> _profiles = [];
+  String? _activeProfileId;
+
   // Fetch tasks from Firestore's "daily" collection
   Future<void> getDocId() async {
     await FirebaseFirestore.instance.collection('daily').get().then(
-          (snapshot) {
-        snapshot.docs.forEach((element) {
+      (snapshot) {
+        dailyItems.clear();
+        for (var element in snapshot.docs) {
           dailyItems.add({
             'title': element.reference.id,
             'description': element.data().values.join('\n'),
           });
-        });
+        }
         setState(() {});
       },
     );
   }
 
+  Future<void> _loadProfiles() async {
+    if (user == null) return;
+    try {
+      final pId = await ProfileService.getActiveProfileId();
+      final list = await ProfileService.getProfiles(user!.uid);
+      setState(() {
+        _activeProfileId = pId;
+        _profiles = list;
+      });
+      await _checkIfCurrentlyAllCompleted();
+    } catch (e) {
+      debugPrint("Error loading profiles in daily view: $e");
+    }
+  }
+
+  Future<void> _checkIfCurrentlyAllCompleted() async {
+    if (user == null) return;
+    try {
+      final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('completedTasks');
+      bool allCompleted = true;
+      for (String r in tasks.keys) {
+        final roomDoc = await completedTasksRef.doc(r).get();
+        if (!roomDoc.exists || roomDoc.data()?['completed'] != true) {
+          allCompleted = false;
+          break;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _allTasksCompleted = allCompleted;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error checking if all completed: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    if (user == null) {
-      _tasksFuture = Future.value({});
-      return;
-    }
-    _checkAndResetForNewDay(); // Verificăm și resetăm dacă este o zi nouă
+    if (user == null) return;
+    _checkAndResetForNewDay();
     getDocId();
-    _tasksFuture = _fetchUserTasks();
+    _loadProfiles();
   }
 
   @override
   bool get wantKeepAlive => true;
 
-// Checks and resets tasks if it's a new day
+  // Checks and resets tasks if it's a new day
   Future<void> _checkAndResetForNewDay() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Get the last reset date stored
     String? lastResetDate = prefs.getString('lastResetDate');
-
     DateTime today = DateTime.now();
 
-    // Check if today is a new day
     if (lastResetDate == null || DateTime.parse(lastResetDate).day != today.day) {
-      // Reset tasks for a new day
       await _resetUserTasks();
-
-      // Save today's date as the last reset date
       prefs.setString('lastResetDate', today.toIso8601String());
-
       print("Tasks reset for a new day!");
     }
-
-    // Schedule the next reset for midnight
     _scheduleResetForMidnight();
   }
 
   void _scheduleResetForMidnight() {
     final now = DateTime.now();
-
-    // Get the next midnight (local time)
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
-
-    // Calculate the duration until midnight
     final timeUntilMidnight = tomorrow.difference(now);
-    // final timeUntilMidnight = Duration(seconds: 5); // Simulate midnight in 5 seconds
 
-    // Log the scheduled reset time
-    print("Current time: $now");
-    print("Next midnight: $tomorrow");
-    print("Scheduled reset at midnight in ${timeUntilMidnight.inHours} hours and ${timeUntilMidnight.inMinutes.remainder(60)} minutes.");
-
-    // Set a timer to call _resetUserTasks at midnight
     Future.delayed(timeUntilMidnight, () async {
       print("Midnight reached! Resetting tasks...");
       await _resetUserTasks();
     });
   }
 
-  // Verifică dacă toate task-urile sunt completate
-  Future<void> _checkIfAllTasksCompleted() async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('completedTasks');
-
-    bool allCompleted = true;
-    for (String room in tasks.keys) {
-      final roomDoc = await completedTasksRef.doc(room).get();
-      if (!roomDoc.exists || !roomDoc.data()!.containsValue(true)) {
-        allCompleted = false;
-        break;
-      }
-    }
-    if (allCompleted) {
-      await _addPoints(10);
-    }
-    setState(() {
-      _allTasksCompleted = allCompleted;
-    });
-  }
-
   // Method to add points to the user
   Future<void> _addPoints(int pointsToAdd) async {
     try {
-      final user = FirebaseAuth.instance.currentUser!;
-      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-
-      // Atomically increment the points
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user!.uid);
       await userRef.update({
         'points': FieldValue.increment(pointsToAdd),
       });
-
-      // Notify the parent widget (homeView) about the updated points
       widget.pointsNotifier.value += pointsToAdd;
     } catch (e) {
       print("Error adding points: $e");
     }
+  }
+
+  Future<void> _saveDailyCheckboxState(String room, int index, bool value) async {
+    if (user == null) return;
+
+    final Map<String, dynamic> dataToSet = {
+      'checkbox_$index': value,
+      'completedBy_checkbox_$index': value ? _activeProfileId : FieldValue.delete(),
+    };
+
+    if (!value) {
+      dataToSet['completed'] = false;
+      dataToSet['completedBy'] = FieldValue.delete();
+      if (_allTasksCompleted) {
+        setState(() {
+          _allTasksCompleted = false;
+        });
+      }
+    }
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('completedTasks')
+        .doc(room)
+        .set(dataToSet, SetOptions(merge: true));
+  }
+
+  Future<void> _completeDailyRoom(String room) async {
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('completedTasks')
+        .doc(room)
+        .set({
+      'completed': true,
+      if (_activeProfileId != null) 'completedBy': _activeProfileId,
+    }, SetOptions(merge: true));
+
+    // Check if all rooms are completed
+    final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('completedTasks');
+    bool allCompleted = true;
+    for (String r in tasks.keys) {
+      if (r == room) continue;
+      final roomDoc = await completedTasksRef.doc(r).get();
+      if (!roomDoc.exists || roomDoc.data()?['completed'] != true) {
+        allCompleted = false;
+        break;
+      }
+    }
+
+    if (allCompleted) {
+      await _addPoints(10);
+      if (mounted) {
+        setState(() {
+          _allTasksCompleted = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _resetUserTasks() async {
+    if (user == null) return;
+    final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('completedTasks');
+
+    for (String room in tasks.keys) {
+      final roomRef = completedTasksRef.doc(room);
+      final Map<String, dynamic> resetData = {
+        'completed': false,
+        'completedBy': FieldValue.delete(),
+      };
+      
+      final List<String> roomTasks = tasks[room] ?? [];
+      for (int i = 0; i < roomTasks.length; i++) {
+        resetData['checkbox_$i'] = false;
+        resetData['completedBy_checkbox_$i'] = FieldValue.delete();
+      }
+
+      await roomRef.set(resetData, SetOptions(merge: true));
+    }
+
+    setState(() {
+      _allTasksCompleted = false;
+    });
   }
 
   @override
@@ -164,13 +242,13 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.lock_outline,
                     size: 56,
                     color: AppColors.accent3,
                   ),
                   const SizedBox(height: 20),
-                  Text(
+                  const Text(
                     'Denne funksjonen er låst',
                     style: TextStyle(
                       fontSize: 22,
@@ -180,7 +258,7 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  Text(
+                  const Text(
                     'For å bruke daglige oppgaver og lagre fremgangen din, må du opprette en konto eller logge inn.',
                     style: TextStyle(
                       fontSize: 16,
@@ -224,7 +302,7 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Container(
-            constraints: BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(maxWidth: 600),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -232,7 +310,7 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
                   blurRadius: 15,
-                  offset: Offset(0, 5),
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -241,7 +319,7 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'Dagens oppgaver',
                     style: TextStyle(
                       fontSize: 28,
@@ -257,13 +335,13 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
                             child: Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Color(0xFFDFF6E4),
+                                color: const Color(0xFFDFF6E4),
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.green.withOpacity(0.15),
                                     blurRadius: 10,
-                                    offset: Offset(0, 4),
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
@@ -277,7 +355,7 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    "Congrats! You've completed all the tasks for today!",
+                                    "Gratulerer! Du har fullført alle oppgavene for i dag!",
                                     style: TextStyle(
                                       fontSize: 22,
                                       color: Colors.green.shade800,
@@ -289,51 +367,236 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
                               ),
                             ),
                           )
-                        : FutureBuilder(
-                            future: _tasksFuture, // Fetch tasks for the current user
+                        : StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user!.uid)
+                                .collection('completedTasks')
+                                .snapshots(),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
-                                return Center(child: CircularProgressIndicator());
+                                return const Center(child: CircularProgressIndicator());
                               }
                               if (snapshot.hasError) {
                                 return Center(child: Text('Error: ${snapshot.error}'));
                               }
 
-                              return ListView.separated(
+                              final docs = snapshot.data?.docs ?? [];
+                              final Map<String, Map<String, dynamic>> roomDataMap = {
+                                for (var doc in docs) doc.id: doc.data() as Map<String, dynamic>
+                              };
+
+                              final roomIcons = {
+                                'Baderom': Icons.bathtub_outlined,
+                                'Kjøkken': Icons.kitchen_outlined,
+                                'Soverom': Icons.bed_outlined,
+                                'Stue og barnerom': Icons.weekend_outlined,
+                                'Inngang': Icons.door_front_door_outlined,
+                              };
+
+                              return ListView.builder(
                                 padding: EdgeInsets.zero,
                                 itemCount: dailyItems.length,
-                                separatorBuilder: (context, index) => SizedBox(height: 16),
                                 itemBuilder: (context, index) {
                                   final item = dailyItems[index];
-                                  final bool isCompleted = snapshot.data![item['title']] ?? false;
+                                  final String room = item['title'];
+                                  final List<String> roomTasks = item['description'].split('\n');
+                                  final rData = roomDataMap[room] ?? {};
+                                  final bool isRoomCompleted = rData['completed'] == true;
+                                  final IconData icon = roomIcons[room] ?? Icons.home_outlined;
 
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.05),
-                                          blurRadius: 8,
-                                          offset: Offset(0, 3),
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    color: Colors.white,
+                                    elevation: 3,
+                                    shadowColor: Colors.black12,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: ExpansionTile(
+                                      leading: Icon(icon, color: AppColors.accent3, size: 28),
+                                      title: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              room,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.accentDark,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isRoomCompleted) ...[
+                                            const SizedBox(width: 8),
+                                            _buildRoomCompleterBadge(room, rData['completedBy']),
+                                          ],
+                                        ],
+                                      ),
+                                      shape: const Border(),
+                                      collapsedShape: const Border(),
+                                      childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      children: [
+                                        for (int ti = 0; ti < roomTasks.length; ti++)
+                                          Builder(
+                                            builder: (context) {
+                                              final String taskText = roomTasks[ti];
+                                              final bool isTaskDone = rData['checkbox_$ti'] == true;
+                                              final String? completedByProfileId = rData['completedBy_checkbox_$ti'] as String?;
+                                              final completerProfile = completedByProfileId == null
+                                                  ? null
+                                                  : _profiles.cast<FamilyProfile?>().firstWhere(
+                                                        (p) => p?.id == completedByProfileId,
+                                                        orElse: () => null,
+                                                      );
+
+                                              return Container(
+                                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                                padding: const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primaryBackground.withValues(alpha: 0.5),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: isTaskDone
+                                                        ? Colors.green.withValues(alpha: 0.3)
+                                                        : AppColors.accent3.withValues(alpha: 0.2),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            taskText,
+                                                            style: const TextStyle(
+                                                              color: AppColors.primaryText,
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 15,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                          decoration: BoxDecoration(
+                                                            color: isTaskDone
+                                                                ? Colors.green.withValues(alpha: 0.15)
+                                                                : Colors.orange.withValues(alpha: 0.15),
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          child: Text(
+                                                            isTaskDone ? 'Fullført' : 'Gjenstår',
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: isTaskDone ? Colors.green.shade800 : Colors.orange.shade800,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Checkbox(
+                                                          value: isTaskDone,
+                                                          activeColor: AppColors.accent3,
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(5),
+                                                          ),
+                                                          onChanged: (bool? v) {
+                                                            _saveDailyCheckboxState(room, ti, v ?? false);
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    if (completerProfile != null) ...[
+                                                      const SizedBox(height: 8),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: completerProfile.color.withValues(alpha: 0.15),
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          border: Border.all(
+                                                            color: completerProfile.color.withValues(alpha: 0.3),
+                                                            width: 1,
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            Text(
+                                                              completerProfile.emoji,
+                                                              style: const TextStyle(fontSize: 12),
+                                                            ),
+                                                            const SizedBox(width: 4),
+                                                            Text(
+                                                              completerProfile.name,
+                                                              style: TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: completerProfile.color,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                          ),
+                                        const SizedBox(height: 12),
+                                        Builder(
+                                          builder: (context) {
+                                            bool allTasksChecked = true;
+                                            for (int i = 0; i < roomTasks.length; i++) {
+                                              if (rData['checkbox_$i'] != true) {
+                                                allTasksChecked = false;
+                                                break;
+                                              }
+                                            }
+
+                                            if (allTasksChecked && !isRoomCompleted) {
+                                              return Padding(
+                                                padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                                                child: SizedBox(
+                                                  width: double.infinity,
+                                                  height: 44,
+                                                  child: ElevatedButton.icon(
+                                                    onPressed: () {
+                                                      _completeDailyRoom(room);
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('Kjempebra! Du har fullført alle oppgaver for $room! 🎉'),
+                                                          backgroundColor: AppColors.accent3,
+                                                          behavior: SnackBarBehavior.floating,
+                                                        ),
+                                                      );
+                                                    },
+                                                    icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                                                    label: Text(
+                                                      'Fullfør $room',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: AppColors.accent3,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(12),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                            return const SizedBox.shrink();
+                                          }
                                         ),
                                       ],
-                                    ),
-                                    child: ListTile(
-                                      leading: isCompleted
-                                          ? Icon(Icons.check_circle, color: Colors.green)
-                                          : Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400),
-                                      title: Text(
-                                        item['title'],
-                                        style: TextStyle(
-                                          color: isCompleted ? Colors.grey : Colors.black87,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      onTap: () {
-                                        _onItemPressed(context, item);
-                                      },
                                     ),
                                   );
                                 },
@@ -350,91 +613,38 @@ class _dailyViewState extends State<dailyView> with AutomaticKeepAliveClientMixi
     );
   }
 
-  // Resetăm task-urile pentru utilizator
-  Future<void> _resetUserTasks() async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('completedTasks');
+  Widget _buildRoomCompleterBadge(String room, String? profileId) {
+    if (profileId == null) return const SizedBox.shrink();
 
-    for (String room in tasks.keys) {
-      final roomRef = completedTasksRef.doc(room);
+    final profile = _profiles.cast<FamilyProfile?>().firstWhere(
+          (p) => p?.id == profileId,
+          orElse: () => null,
+        );
+    if (profile == null) return const SizedBox.shrink();
 
-      // Setăm toate task-urile pe false
-      await roomRef.set({
-        for (String task in tasks[room]!) task: false,
-      });
-    }
-
-    setState(() {
-      _allTasksCompleted = false;
-    });
-  }
-
-  // Fetch user tasks
-  Future<Map<String, bool>> _fetchUserTasks() async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('completedTasks');
-
-    Map<String, bool> userTaskCompletionStatus = {};
-
-    for (String room in tasks.keys) {
-      final roomDoc = await completedTasksRef.doc(room).get();
-
-      if (roomDoc.exists) {
-        userTaskCompletionStatus[room] = roomDoc.data()!.containsValue(true);
-      } else {
-        userTaskCompletionStatus[room] = false;
-      }
-    }
-
-    return userTaskCompletionStatus;
-  }
-
-  // Handle item press
-  void _onItemPressed(BuildContext context, Map<String, dynamic> item) async {
-    bool isCompleted = await _checkIfTaskCompleted(item['title']);
-    if (isCompleted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You have already completed these tasks!')),
-      );
-    } else {
-      final descriptions = item['description'].split('\n');
-      final taskCompleted = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DailyItemDetailsView(
-            title: item['title'],
-            descriptions: descriptions,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: profile.color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: profile.color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(profile.emoji, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 4),
+          Text(
+            profile.name,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: profile.color,
+            ),
           ),
-        ),
-      );
-
-      if (taskCompleted == true) {
-        await _completeTask(item['title']);
-
-        setState(() {
-          _tasksFuture = _fetchUserTasks();
-        });
-      }
-    }
-  }
-
-  Future<bool> _checkIfTaskCompleted(String taskTitle) async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final taskRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('completedTasks').doc(taskTitle);
-
-    final snapshot = await taskRef.get();
-    return snapshot.exists && snapshot.data()?['completed'] == true;
-  }
-
-  Future<void> _completeTask(String taskTitle) async {
-    final user = FirebaseAuth.instance.currentUser!;
-    final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('completedTasks');
-
-    await completedTasksRef.doc(taskTitle).set({
-      'completed': true,
-    });
-
-    _checkIfAllTasksCompleted();
+        ],
+      ),
+    );
   }
 }
 
@@ -451,7 +661,7 @@ Map<String, List<String>> tasks = {
     'bruk en glassklut på kokeplata',
     'fei/støvsug/mop gulvet',
     'rydd benkeplater',
-    'spray overflater med hverdagsflasken',
+    'spray overflater met hverdagsflasken',
     'ta ut søppel',
     'tøm oppvasken',
     'tørk overflater tørre etter vask',
@@ -481,31 +691,20 @@ Future<void> resetUserTasks() async {
     final user = FirebaseAuth.instance.currentUser!;
     final completedTasksRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('completedTasks');
 
-    // Iterate over each room and tasks
     for (String room in tasks.keys) {
       final roomRef = completedTasksRef.doc(room);
-
-      // Check if the room document exists
-      final roomSnapshot = await roomRef.get();
-      if (roomSnapshot.exists) {
-        // Reset all tasks for the room to false
-        final Map<String, dynamic> updatedTasks = {};
-        for (String task in tasks[room]!) {
-          updatedTasks[task] = false;
-        }
-
-        // Update the document with the reset tasks
-        await roomRef.update(updatedTasks);
-      } else {
-        // If the room document doesn't exist, create it with all tasks set to false
-        final Map<String, dynamic> newTasks = {};
-        for (String task in tasks[room]!) {
-          newTasks[task] = false;
-        }
-
-        // Create the document
-        await roomRef.set(newTasks);
+      final Map<String, dynamic> resetData = {
+        'completed': false,
+        'completedBy': FieldValue.delete(),
+      };
+      
+      final List<String> roomTasks = tasks[room] ?? [];
+      for (int i = 0; i < roomTasks.length; i++) {
+        resetData['checkbox_$i'] = false;
+        resetData['completedBy_checkbox_$i'] = FieldValue.delete();
       }
+
+      await roomRef.set(resetData, SetOptions(merge: true));
     }
 
     print("Tasks reset successfully for user ${user.email}!");

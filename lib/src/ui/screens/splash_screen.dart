@@ -6,6 +6,7 @@ import 'package:ralu_norvegia/src/app/app_router.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ralu_norvegia/src/service/profile_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -61,7 +62,14 @@ class _SplashScreenState extends State<SplashScreen> {
       if (user != null) {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data()?['hasCompletedSetup'] == true) {
-          await _navigateAfterDelay(homePath);
+          // Check if user has family profiles → go to profile selection
+          final hasProfiles = await ProfileService.hasProfiles(user.uid);
+          if (hasProfiles) {
+            await _navigateAfterDelay(profileSelectionPath);
+          } else {
+            // First time: go to profile selection which will prompt to create first profile
+            await _navigateAfterDelay(profileSelectionPath);
+          }
         } else {
           await _navigateAfterDelay(RoomsSetupPath);
         }

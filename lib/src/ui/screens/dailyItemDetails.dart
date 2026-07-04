@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ralu_norvegia/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:ralu_norvegia/src/models/family_profile.dart';
+import 'package:ralu_norvegia/src/service/profile_service.dart';
 
 class DailyItemDetailsView extends StatefulWidget {
   final String title;
@@ -21,11 +23,29 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
   final user = FirebaseAuth.instance.currentUser!;
   List<bool> _isChecked = [];
   bool _allChecked = false;
+  
+  String? _activeProfileId;
+  List<FamilyProfile> _profiles = [];
+  Map<int, String> _completedByMap = {};
 
   @override
   void initState() {
     super.initState();
     _loadCheckboxState();  // Load the checkbox state when the screen opens
+    _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    try {
+      final pId = await ProfileService.getActiveProfileId();
+      final list = await ProfileService.getProfiles(user.uid);
+      setState(() {
+        _activeProfileId = pId;
+        _profiles = list;
+      });
+    } catch (e) {
+      print("Error loading profiles: $e");
+    }
   }
 
   // Function to load the checkbox states from Firestore
@@ -39,13 +59,24 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
           .get();
 
       List<bool> savedStates = List.generate(widget.descriptions.length, (index) {
-        // Cast userSnapshot.data() to Map<String, dynamic>
         Map<String, dynamic>? data = userSnapshot.data() as Map<String, dynamic>?;
         return data?['checkbox_$index'] ?? false;
       });
 
+      final Map<int, String> completedBy = {};
+      Map<String, dynamic>? data = userSnapshot.data() as Map<String, dynamic>?;
+      if (data != null) {
+        for (int i = 0; i < widget.descriptions.length; i++) {
+          final profileId = data['completedBy_checkbox_$i'] as String?;
+          if (profileId != null) {
+            completedBy[i] = profileId;
+          }
+        }
+      }
+
       setState(() {
         _isChecked = savedStates;
+        _completedByMap = completedBy;
         _checkAllChecked();  // Check if all checkboxes are checked
       });
     } catch (e) {
@@ -55,12 +86,27 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
 
   // Function to save the checkbox state to Firestore
   Future<void> _saveCheckboxState(int index, bool value) async {
+    setState(() {
+      if (value) {
+        if (_activeProfileId != null) {
+          _completedByMap[index] = _activeProfileId!;
+        }
+      } else {
+        _completedByMap.remove(index);
+      }
+    });
+
+    final dataToSet = {
+      'checkbox_$index': value,
+      'completedBy_checkbox_$index': value ? _activeProfileId : FieldValue.delete(),
+    };
+
     await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('completedTasks')
         .doc(widget.title)
-        .set({'checkbox_$index': value}, SetOptions(merge: true));
+        .set(dataToSet, SetOptions(merge: true));
   }
 
   // This function will update whether all checkboxes are checked
@@ -148,9 +194,18 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
                             borderRadius: BorderRadius.circular(12),
                             child: ListTile(
                               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              trailing: Icon(
-                                _isChecked[index] ? Icons.task_alt : Icons.circle_outlined,
-                                color: _isChecked[index] ? AppColors.accent3 : Colors.grey,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_isChecked[index]) ...[
+                                    _buildCompleterBadge(index),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  Icon(
+                                    _isChecked[index] ? Icons.task_alt : Icons.circle_outlined,
+                                    color: _isChecked[index] ? AppColors.accent3 : Colors.grey,
+                                  ),
+                                ],
                               ),
                               title: Text(
                                 widget.descriptions[index],
@@ -237,8 +292,35 @@ class _DailyItemDetailsViewState extends State<DailyItemDetailsView> {
         .doc(user.uid)
         .collection('completedTasks')
         .doc(taskTitle)
-        .set({'completed': true}, SetOptions(merge: true));
+        .set({
+          'completed': true,
+          'completedBy': _activeProfileId,
+        }, SetOptions(merge: true));
 
     Navigator.of(context).pop(true);  // Return true to indicate task completion
+  }
+
+  Widget _buildCompleterBadge(int index) {
+    final profileId = _completedByMap[index];
+    if (profileId == null) return const SizedBox.shrink();
+
+    final profile = _profiles.cast<FamilyProfile?>().firstWhere(
+          (p) => p?.id == profileId,
+          orElse: () => null,
+        );
+    if (profile == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: profile.color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: profile.color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Text(
+        profile.emoji,
+        style: const TextStyle(fontSize: 14),
+      ),
+    );
   }
 }

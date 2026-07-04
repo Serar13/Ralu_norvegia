@@ -411,6 +411,7 @@ class FirestoreBootstrap {
         // Create the day node
         final dayRef = progressRef.doc(week).collection('days').doc(day);
         await dayRef.set({
+          'progress': 0.0,
           'nrLoc': locs.length,
           'suprafata': header,
           'updatedAt': FieldValue.serverTimestamp(),
