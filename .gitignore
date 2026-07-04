@@ -48,6 +48,8 @@ node_modules/
 **/node_modules/
 
 # Local build artifacts and backup directories
+app/build/
+**/build/
 /ios/build/
 /functions/build/
 /android_bak/

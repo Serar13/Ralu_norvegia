@@ -35,9 +35,7 @@ export default function Layout() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="logo">
-            <Sparkle width={22} height={22} color="#fff" />
-          </span>
+          <img src="/logo.png" alt="Logo" style={{ width: 40, height: 40, borderRadius: 12, marginRight: 8, objectFit: 'cover' }} />
           <span>
             Ralu Norvegia
             <small>Admin konsoll</small>

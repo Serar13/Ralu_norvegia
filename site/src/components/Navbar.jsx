@@ -6,9 +6,7 @@ export default function Navbar() {
     <header className="nav">
       <div className="container nav-inner">
         <a className="brand" href="#top" aria-label={`${company.name} hjem`}>
-          <span className="logo">
-            <Sparkle width={22} height={22} color="#fff" />
-          </span>
+          <img src="/logo.png" alt={`${company.name} logo`} style={{ width: 40, height: 40, borderRadius: 12, marginRight: 8, objectFit: 'cover' }} />
           <span>
             {company.name}
             <small>{company.tagline}</small>

@@ -5,31 +5,31 @@
    ========================================================================== */
 
 :root {
-  --sky: #add8e6;
-  --sky-soft: #d7eef6;
-  --sky-tint: #eef8fc;
-  --teal: #72c0b3;
-  --teal-deep: #23767b;
-  --coral: #e18178;
-  --coral-soft: #f6d9d5;
+  --sky: #A8D5BA;
+  --sky-soft: #D5EBDD;
+  --sky-tint: #F2FAF5;
+  --teal: #6B8F71;
+  --teal-deep: #2F4F4F;
+  --coral: #CE522C;
+  --coral-soft: #F9E2DB;
 
-  --ink: #1f2f3a;
-  --ink-soft: #5c6b76;
-  --ink-faint: #8ea0ab;
+  --ink: #233029;
+  --ink-soft: #4C5C50;
+  --ink-faint: #7A8E7F;
   --surface: #ffffff;
-  --surface-2: #f7fbfd;
-  --cream: #fbfcfe;
-  --line: #e6eef2;
+  --surface-2: #FAF9F6;
+  --cream: #F5F3ED;
+  --line: #E2DDD5;
   --star: #f0a94b;
 
   --radius-sm: 14px;
   --radius: 22px;
   --radius-lg: 32px;
   --radius-pill: 999px;
-  --shadow-sm: 0 6px 18px rgba(35, 118, 123, 0.08);
-  --shadow: 0 18px 40px rgba(35, 118, 123, 0.12);
-  --shadow-lg: 0 30px 70px rgba(35, 118, 123, 0.18);
-  --ring: 0 0 0 4px rgba(114, 192, 179, 0.25);
+  --shadow-sm: 0 6px 18px rgba(47, 79, 79, 0.08);
+  --shadow: 0 18px 40px rgba(47, 79, 79, 0.12);
+  --shadow-lg: 0 30px 70px rgba(47, 79, 79, 0.18);
+  --ring: 0 0 0 4px rgba(107, 143, 113, 0.25);
 
   --maxw: 1180px;
   --font: 'Kanit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

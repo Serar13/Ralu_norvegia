@@ -53,9 +53,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={handleSubmit}>
-        <div className="login-logo">
-          <Sparkle width={26} height={26} color="#fff" />
-        </div>
+        <img src="/logo.png" alt="Logo" style={{ width: 52, height: 52, borderRadius: 16, marginBottom: 16, objectFit: 'cover' }} />
         <h1>Admin innlogging</h1>
         <p className="sub">Ralu Norvegia · internt konsoll</p>
 
