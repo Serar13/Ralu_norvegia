@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "ralunorvegia"
+  },
+  "targets": {
+    "ralunorvegia": {
+      "hosting": {
+        "site": [
+          "ralunorvegia"
+        ],
+        "webadmin": [
+          "ralunorvegia-admin"
+        ]
+      }
+    }
+  }
+}

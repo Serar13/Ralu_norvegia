@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// -----------------------------------------------------------------------------
+// Ralu Norvegia — Firestore security rules
+// -----------------------------------------------------------------------------
+// These rules support BOTH the mobile app and the /webadmin dashboard:
+//   * every signed-in user owns their own profile + progress sub-collections
+//   * admins (users/{uid}.role == 'admin' or isAdmin == true) can read every
+//     user and manage the shared `weeklyTasks` and `rooms` template collections
+//   * all signed-in users can READ the shared templates (the app clones them)
+//
+// ⚠️  Review before deploying — this replaces the project's current rules.
+//     Deploy on its own with:  firebase deploy --only firestore:rules
+// -----------------------------------------------------------------------------
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Reads the caller's own user document to check for admin privileges.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        );
+    }
+
+    // ---- Users ------------------------------------------------------------
+    match /users/{uid} {
+      // Owner or admin may read. Admin needs this to list the User Overview.
+      allow read: if isOwner(uid) || isAdmin();
+      // Owner may create/update their own profile; admins may edit any profile
+      // (e.g. to grant roles). Nobody deletes another user's profile but admins.
+      allow create, update: if isOwner(uid) || isAdmin();
+      allow delete: if isOwner(uid) || isAdmin();
+
+      // Per-user sub-collections (completedTasks, userProgress, …).
+      match /{sub=**} {
+        allow read, write: if isOwner(uid) || isAdmin();
+      }
+    }
+
+    // ---- Weekly task templates (Uke 1–4) ----------------------------------
+    // The app clones these when a user starts a week, so any signed-in user
+    // may read them. Only admins edit them via the dashboard.
+    match /weeklyTasks/{uke} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      match /{sub=**} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ---- Room / location templates ----------------------------------------
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---- Shared daily catalogue (read by the app) -------------------------
+    match /daily/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

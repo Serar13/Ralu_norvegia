@@ -1,0 +1,822 @@
+/* ==========================================================================
+   Ralu Norvegia — Admin dashboard design system
+   Same Nordic palette as the landing site, tuned for a dense data UI.
+   ========================================================================== */
+
+:root {
+  --sky: #add8e6;
+  --sky-tint: #eef8fc;
+  --teal: #72c0b3;
+  --teal-deep: #23767b;
+  --coral: #e18178;
+  --amber: #e0a458;
+
+  --ink: #1f2f3a;
+  --ink-soft: #5c6b76;
+  --ink-faint: #93a3ad;
+  --bg: #f4f8fb;
+  --surface: #ffffff;
+  --surface-2: #f7fbfd;
+  --line: #e6eef2;
+  --danger: #ce522c;
+  --danger-soft: #fbe6df;
+  --ok: #3f9e8b;
+
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 4px 14px rgba(35, 118, 123, 0.07);
+  --shadow: 0 16px 40px rgba(35, 118, 123, 0.12);
+  --ring: 0 0 0 3px rgba(114, 192, 179, 0.3);
+
+  --sidebar-w: 260px;
+  --font: 'Kanit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ------------------------------ Buttons ---------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.14s ease, background 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+}
+
+.btn-primary:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-ghost {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+.btn-ghost:not(:disabled):hover {
+  border-color: var(--teal);
+  color: var(--teal-deep);
+}
+
+.btn-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.btn-danger:not(:disabled):hover {
+  background: #f7d6cc;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.icon-btn:hover {
+  color: var(--teal-deep);
+  border-color: var(--teal);
+}
+
+.icon-btn.danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ------------------------------ Inputs ----------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: #fff;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: var(--ring);
+}
+
+/* ------------------------------ Badges ----------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.badge-admin {
+  background: rgba(114, 192, 179, 0.16);
+  color: var(--teal-deep);
+}
+
+.badge-user {
+  background: #eef2f5;
+  color: var(--ink-soft);
+}
+
+.badge-streak {
+  background: rgba(225, 129, 120, 0.15);
+  color: var(--coral);
+}
+
+/* ------------------------------ Login ------------------------------------ */
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(900px 500px at 80% -10%, var(--sky-tint), transparent 60%),
+    radial-gradient(700px 460px at -10% 20%, #eefaf6, transparent 55%),
+    var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 410px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 40px 34px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--sky), var(--teal));
+  margin-bottom: 20px;
+}
+
+.login-card h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.login-card .sub {
+  color: var(--ink-soft);
+  font-weight: 300;
+  font-size: 0.95rem;
+  margin: 6px 0 26px;
+}
+
+.alert {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-size: 0.87rem;
+  margin-bottom: 16px;
+  border: 1px solid rgba(206, 82, 44, 0.18);
+}
+
+/* ------------------------------ Shell ------------------------------------ */
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #0f2733;
+  color: #d7e6ec;
+  padding: 26px 18px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 24px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sidebar .brand .logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--sky), var(--teal));
+  flex: none;
+}
+
+.sidebar .brand small {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #7fa0ad;
+}
+
+.nav-group-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6f909d;
+  padding: 16px 12px 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  color: #b8cdd6;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background 0.14s ease, color 0.14s ease;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(114, 192, 179, 0.9), rgba(35, 118, 123, 0.9));
+  color: #fff;
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 14px;
+}
+
+.sidebar-user .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky), var(--teal));
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex: none;
+}
+
+.sidebar-user .meta {
+  overflow: hidden;
+}
+
+.sidebar-user .meta strong {
+  font-size: 0.9rem;
+  color: #fff;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user .meta span {
+  font-size: 0.76rem;
+  color: #7fa0ad;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.logout-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7e6ec;
+  border: 0;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.14s ease;
+}
+
+.logout-btn:hover {
+  background: rgba(206, 82, 44, 0.25);
+  color: #fff;
+}
+
+/* ------------------------------ Main ------------------------------------- */
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topbar h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.topbar .crumb {
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+.content {
+  padding: 30px 32px 60px;
+}
+
+/* ------------------------------ Cards ------------------------------------ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-pad {
+  padding: 22px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.card-head h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.card-head p {
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+  font-weight: 300;
+}
+
+/* stat cards */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.stat {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat .stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  margin-bottom: 14px;
+}
+
+.stat .stat-val {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat .stat-label {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 400;
+  margin-top: 6px;
+}
+
+/* ------------------------------ Table ------------------------------------ */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+table.data th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+table.data td {
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+table.data tr:last-child td {
+  border-bottom: 0;
+}
+
+table.data tbody tr {
+  transition: background 0.12s ease;
+}
+
+table.data tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-cell .avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky), var(--teal));
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  flex: none;
+}
+
+.user-cell .u-mail {
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------ Template editor -------------------------- */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.chip:hover {
+  border-color: var(--teal);
+}
+
+.chip.active {
+  background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+  border-color: transparent;
+  color: #fff;
+}
+
+.room-block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.room-block .room-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.room-block .room-head .room-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.room-block .room-head .room-title .emoji {
+  font-size: 1.2rem;
+}
+
+.task-list {
+  padding: 8px 18px 14px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.task-item:last-child {
+  border-bottom: 0;
+}
+
+.task-item .drag {
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+}
+
+.task-item .t-input {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.92rem;
+  background: transparent;
+  color: var(--ink);
+}
+
+.task-item .t-input:focus {
+  outline: none;
+  border-color: var(--teal);
+  background: #fff;
+  box-shadow: var(--ring);
+}
+
+.add-task-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dirty-bar {
+  position: sticky;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #0f2733;
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 8px;
+}
+
+.dirty-bar span {
+  font-size: 0.9rem;
+}
+
+/* ------------------------------ States ----------------------------------- */
+.center-state {
+  display: grid;
+  place-items: center;
+  padding: 70px 20px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  border-top-color: var(--teal);
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 14px;
+}
+
+.empty-emoji {
+  font-size: 2.4rem;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--ink-soft);
+  font-weight: 300;
+  font-size: 0.92rem;
+}
+
+/* ------------------------------ Modal ------------------------------------ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 39, 51, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 60;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 26px;
+}
+
+.modal h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.modal .modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* ------------------------------ Responsive ------------------------------- */
+@media (max-width: 900px) {
+  :root {
+    --sidebar-w: 0px;
+  }
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: none;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .content,
+  .topbar {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
